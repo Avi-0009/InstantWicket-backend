@@ -65,3 +65,41 @@ func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func CreateUserSession(userID string) (string, error) {
+
+	var sessionID string
+
+	query := `
+		INSERT INTO user_sessions (
+			user_id
+		)
+		VALUES ($1)
+		RETURNING id
+	`
+
+	err := database.DB.Get(
+		&sessionID,
+		query,
+		userID,
+	)
+
+	return sessionID, err
+}
+
+func DeleteUserSession(sessionID string) error {
+
+	query := `
+		UPDATE user_sessions
+		SET archived_at = NOW()
+		WHERE id = $1
+		AND archived_at IS NULL
+	`
+
+	_, err := database.DB.Exec(
+		query,
+		sessionID,
+	)
+
+	return err
+}

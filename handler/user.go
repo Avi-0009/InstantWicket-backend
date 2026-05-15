@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Avi-0009/InstantWicket-backend/database/dbHelper"
@@ -91,15 +90,11 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("PHONE:", input.PhoneNo)
-
 	user, err := dbHelper.GetUserByPhoneNo(
 		input.PhoneNo,
 	)
 
 	if err != nil {
-
-		fmt.Println("DB ERROR:", err)
 
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "Invalid phone number or password",
@@ -108,14 +103,10 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("USER FOUND:", user.Name)
-
 	isPasswordCorrect := utils.CheckPassword(
 		user.Password,
 		input.Password,
 	)
-
-	fmt.Println("PASSWORD MATCH:", isPasswordCorrect)
 
 	if !isPasswordCorrect {
 
@@ -126,7 +117,71 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
+	sessionID, err := dbHelper.CreateUserSession(
+		user.ID,
+	)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create session",
+		})
+
+		return
+	}
+
+	token, err := utils.GenerateToken(
+		user.ID,
+		sessionID,
+	)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate token",
+		})
+
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
+		"token":   token,
+		"user": gin.H{
+			"id":       user.ID,
+			"name":     user.Name,
+			"phone_no": user.PhoneNo,
+		},
+	})
+}
+
+func LogoutUser(c *gin.Context) {
+
+	sessionID := c.GetString("sessionID")
+
+	if sessionID == "" {
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid session",
+		})
+
+		return
+	}
+
+	err := dbHelper.DeleteUserSession(
+		sessionID,
+	)
+
+	if err != nil {
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to logout",
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logout successful",
 	})
 }
