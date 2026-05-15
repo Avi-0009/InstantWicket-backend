@@ -14,34 +14,46 @@ func Register(c *gin.Context) {
 	var input models.RegisterUser
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input",
 		})
+
 		return
 	}
 
-	isUserExist, err := dbHelper.IsUserExist(input.PhoneNo)
+	isUserExist, err := dbHelper.IsUserExist(
+		input.PhoneNo,
+	)
 
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Database error",
 		})
+
 		return
 	}
 
 	if isUserExist {
+
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "User already exists",
 		})
+
 		return
 	}
 
-	hashedPassword, err := utils.HashPassword(input.Password)
+	hashedPassword, err := utils.HashPassword(
+		input.Password,
+	)
 
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to hash password",
 		})
+
 		return
 	}
 
@@ -52,13 +64,65 @@ func Register(c *gin.Context) {
 	)
 
 	if err != nil {
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create user",
 		})
+
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
+	})
+}
+
+func LoginUser(c *gin.Context) {
+
+	var input models.LoginUser
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid input",
+		})
+
+		return
+	}
+
+	user, err := dbHelper.GetUserByPhoneNo(
+		input.PhoneNo,
+	)
+
+	if err != nil {
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid phone number or password",
+		})
+
+		return
+	}
+
+	isPasswordCorrect := utils.CheckPassword(
+		user.Password,
+		input.Password,
+	)
+
+	if !isPasswordCorrect {
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid phone number or password",
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Login successful",
+		"user": gin.H{
+			"id":       user.ID,
+			"name":     user.Name,
+			"phone_no": user.PhoneNo,
+		},
 	})
 }

@@ -2,6 +2,7 @@ package dbHelper
 
 import (
 	"github.com/Avi-0009/InstantWicket-backend/database"
+	"github.com/Avi-0009/InstantWicket-backend/models"
 )
 
 func IsUserExist(phoneNo string) (bool, error) {
@@ -17,7 +18,7 @@ func IsUserExist(phoneNo string) (bool, error) {
 		)
 	`
 
-	err := database.Todo.Get(
+	err := database.DB.Get(
 		&exist,
 		query,
 		phoneNo,
@@ -41,7 +42,7 @@ func CreateUser(
 		VALUES ($1, $2, $3)
 	`
 
-	_, err := database.Todo.Exec(
+	_, err := database.DB.Exec(
 		query,
 		name,
 		phoneNo,
@@ -49,4 +50,18 @@ func CreateUser(
 	)
 
 	return err
+}
+
+func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
+
+	var user models.User
+
+	query := `SELECT id, name, phone_no FROM users WHERE phone_no = $1 AND archived_at IS NULL`
+
+	err := database.DB.Get(&user, query, phoneNo)
+
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

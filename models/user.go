@@ -6,6 +6,11 @@ type RegisterUser struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type LoginUser struct {
+	PhoneNo  string `json:"phone_no" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type User struct {
 	ID       string `db:"id" json:"id"`
 	Name     string `db:"name" json:"name"`

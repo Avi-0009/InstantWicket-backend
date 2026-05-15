@@ -5,6 +5,7 @@ import (
 
 	"github.com/Avi-0009/InstantWicket-backend/config"
 	"github.com/Avi-0009/InstantWicket-backend/database"
+	"github.com/Avi-0009/InstantWicket-backend/server"
 )
 
 func main() {
@@ -22,4 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	r := server.NewServer()
+	port := config.GetEnv("PORT", "8080")
+	r.Run(":" + port)
 }
