@@ -10,5 +10,6 @@ func PlayerStatsRoutes(r *gin.Engine) {
 	playerStats := r.Group("/v1/player_stats", middleware.AuthMiddleware())
 	{
 		playerStats.POST("", handler.CreatePlayerStats)
+		playerStats.GET("", handler.GetPlayerStats)
 	}
 }

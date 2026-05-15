@@ -1,6 +1,9 @@
 package dbHelper
 
-import "github.com/Avi-0009/InstantWicket-backend/database"
+import (
+	"github.com/Avi-0009/InstantWicket-backend/database"
+	"github.com/Avi-0009/InstantWicket-backend/models"
+)
 
 func IsPlayerStatsExist(userID string) (bool, error) {
 
@@ -27,4 +30,16 @@ func CreatePlayerStats(userID string, battingStyle string, bowlingStyle string) 
 	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, $2, $3)`
 	_, err := database.DB.Exec(query, userID, battingStyle, bowlingStyle)
 	return err
+}
+
+func GetPlayerStatsByUserID(userID string) (*models.PlayerStats, error) {
+	var playerStats models.PlayerStats
+
+	query := `SELECT id, user_id, batting_style, bowling_style, career_matches, career_runs, career_wickets, career_catches, career_runouts, career_stumpings, career_fours, career_sixes, strike_rate, economy FROM player_stats WHERE user_id = $1`
+	err := database.DB.Get(&playerStats, query, userID)
+
+	if err != nil {
+		return nil, err
+	}
+	return &playerStats, nil
 }
