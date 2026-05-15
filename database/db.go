@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -20,7 +22,7 @@ const SSLModeDisable SSLMode = "disable"
 
 type SSLMode string
 
-func ConnectandMigrate(
+func ConnectAndMigrate(
 	host,
 	port,
 	databaseName,
@@ -43,10 +45,14 @@ func ConnectandMigrate(
 
 	if err != nil {
 		return fmt.Errorf(
-			"could not connect to database: %w",
+			"failed to open database connection: %w",
 			err,
 		)
 	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	err = db.Ping()
 
@@ -57,7 +63,7 @@ func ConnectandMigrate(
 		)
 	}
 
-	fmt.Println("Database connected successfully")
+	log.Println("Database connected successfully")
 
 	DB = db
 
@@ -66,7 +72,7 @@ func ConnectandMigrate(
 
 func migrateUp(db *sqlx.DB) error {
 
-	fmt.Println("Starting database migrations...")
+	log.Println("Starting database migrations...")
 
 	driver, err := postgres.WithInstance(
 		db.DB,
@@ -75,7 +81,7 @@ func migrateUp(db *sqlx.DB) error {
 
 	if err != nil {
 		return fmt.Errorf(
-			"could not create migration driver: %w",
+			"failed to create migration driver: %w",
 			err,
 		)
 	}
@@ -95,7 +101,9 @@ func migrateUp(db *sqlx.DB) error {
 	if err != nil {
 
 		if errors.Is(err, migrate.ErrNoChange) {
-			fmt.Println("No new migrations to apply")
+
+			log.Println("No new migrations to apply")
+
 			return nil
 		}
 
@@ -105,7 +113,7 @@ func migrateUp(db *sqlx.DB) error {
 		)
 	}
 
-	fmt.Println("Migrations applied successfully")
+	log.Println("Migrations applied successfully")
 
 	return nil
 }
@@ -131,21 +139,17 @@ func WithTransaction(
 			_ = tx.Rollback()
 
 			panic(p)
-
-		} else if err != nil {
-
-			_ = tx.Rollback()
 		}
 	}()
 
 	err = fn(tx)
 
 	if err != nil {
+
+		_ = tx.Rollback()
+
 		return err
 	}
 
 	return tx.Commit()
 }
-
-//DB - dbHelper (queries) - handler(funs) - server/routes
-// models <- body

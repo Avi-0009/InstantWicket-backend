@@ -11,7 +11,7 @@ import (
 func main() {
 	config.LoadConfig()
 
-	err := database.ConnectandMigrate(
+	err := database.ConnectAndMigrate(
 		config.GetEnv("DB_HOST", "-"),
 		config.GetEnv("DB_PORT", "-"),
 		config.GetEnv("DB_NAME", "-"),

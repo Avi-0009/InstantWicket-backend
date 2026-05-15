@@ -56,7 +56,7 @@ func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 
 	var user models.User
 
-	query := `SELECT id, name, phone_no FROM users WHERE phone_no = $1 AND archived_at IS NULL`
+	query := `SELECT id, name, phone_no, password FROM users WHERE phone_no = $1 AND archived_at IS NULL`
 
 	err := database.DB.Get(&user, query, phoneNo)
 
