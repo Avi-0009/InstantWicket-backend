@@ -14,7 +14,8 @@ func NewServer() *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
-			"http://192.168.0.236:5173", // Add your phone's frontend origin here
+			//"http://192.168.0.236:5173", // Add your phone's frontend origin here
+			"http://192.168.29.139:5173",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
@@ -27,6 +28,6 @@ func NewServer() *gin.Engine {
 
 	// 2. Load your routes AFTER the middleware
 	UserRoutes(r)
-
+	PlayerStatsRoutes(r)
 	return r
 }
