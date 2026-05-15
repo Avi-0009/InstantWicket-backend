@@ -9,57 +9,25 @@ func IsUserExist(phoneNo string) (bool, error) {
 
 	var exist bool
 
-	query := `
-		SELECT EXISTS (
-			SELECT 1
-			FROM users
-			WHERE phone_no = $1
-			AND archived_at IS NULL
-		)
-	`
+	query := `SELECT EXISTS (SELECT 1 FROM users WHERE phone_no = $1 AND archived_at IS NULL)`
 
-	err := database.DB.Get(
-		&exist,
-		query,
-		phoneNo,
-	)
+	err := database.DB.Get(&exist, query, phoneNo)
 
 	return exist, err
 }
 
-func CreateUser(
-	name string,
-	phoneNo string,
-	password string,
-) error {
+func CreateUser(name, phoneNo, password string) error {
 
-	query := `
-		INSERT INTO users (
-			name,
-			phone_no,
-			password
-		)
-		VALUES ($1, $2, $3)
-	`
-
-	_, err := database.DB.Exec(
-		query,
-		name,
-		phoneNo,
-		password,
-	)
-
+	query := `INSERT INTO users (name, phone_no, password)VALUES ($1, $2, $3)`
+	_, err := database.DB.Exec(query, name, phoneNo, password)
 	return err
 }
 
 func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 
 	var user models.User
-
 	query := `SELECT id, name, phone_no, password FROM users WHERE phone_no = $1 AND archived_at IS NULL`
-
 	err := database.DB.Get(&user, query, phoneNo)
-
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +38,7 @@ func CreateUserSession(userID string) (string, error) {
 
 	var sessionID string
 
-	query := `
-		INSERT INTO user_sessions (
-			user_id
-		)
-		VALUES ($1)
-		RETURNING id
-	`
+	query := `INSERT INTO user_sessions (user_id)VALUES ($1)RETURNING id`
 
 	err := database.DB.Get(
 		&sessionID,
@@ -89,17 +51,7 @@ func CreateUserSession(userID string) (string, error) {
 
 func DeleteUserSession(sessionID string) error {
 
-	query := `
-		UPDATE user_sessions
-		SET archived_at = NOW()
-		WHERE id = $1
-		AND archived_at IS NULL
-	`
-
-	_, err := database.DB.Exec(
-		query,
-		sessionID,
-	)
-
+	query := `UPDATE user_sessions SET archived_at = NOW() WHERE id = $1 AND archived_at IS NULL`
+	_, err := database.DB.Exec(query, sessionID)
 	return err
 }

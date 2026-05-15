@@ -15,7 +15,6 @@ func CreatePlayerStats(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	if userID == "" {
-
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -23,7 +22,6 @@ func CreatePlayerStats(c *gin.Context) {
 	var input models.CreatePlayerStats
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -48,9 +46,7 @@ func CreatePlayerStats(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Player stats created successfully",
-	})
+	c.JSON(http.StatusCreated, gin.H{"message": "Player stats created successfully"})
 }
 
 func GetPlayerStats(c *gin.Context) {

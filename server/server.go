@@ -24,26 +24,9 @@ func NewServer() *gin.Engine {
 				"http://192.168.29.139:5173",
 			),
 		},
-
-		AllowMethods: []string{
-			"GET",
-			"POST",
-			"PUT",
-			"PATCH",
-			"DELETE",
-			"OPTIONS",
-		},
-
-		AllowHeaders: []string{
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-		},
-
-		ExposeHeaders: []string{
-			"Content-Length",
-		},
+		AllowMethods:  []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders: []string{"Content-Length"},
 
 		AllowCredentials: true,
 
