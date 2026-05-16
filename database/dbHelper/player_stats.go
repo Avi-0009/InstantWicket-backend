@@ -13,17 +13,25 @@ func IsPlayerStatsExist(userID string) (bool, error) {
 	return exist, err
 }
 
-func CreatePlayerStats(userID, battingStyle, bowlingStyle string) error {
-	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, $2, $3)`
-	_, err := database.DB.Exec(query, userID, battingStyle, bowlingStyle)
-	return err
+func CreatePlayerStats(userID, battingStyle, bowlingStyle string) (string, error) {
+	var playerID string
+	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, $2, $3) RETURNING id`
+	err := database.DB.Get(&playerID, query, userID, battingStyle, bowlingStyle)
+	return playerID, err
 }
 
-func GetPlayerStatsByUserID(userID string) (*models.PlayerStats, error) {
+func GetPlayerIDByUserID(userID string) (string, error) {
+	var playerID string
+	query := `SELECT id FROM player_stats WHERE user_id = $1`
+	err := database.DB.Get(&playerID, query, userID)
+	return playerID, err
+}
+
+func GetPlayerStatsByPlayerID(playerID string) (*models.PlayerStats, error) {
 	var playerStats models.PlayerStats
 
-	query := `SELECT id, user_id, batting_style, bowling_style, career_matches, career_runs, career_wickets, career_catches, career_runouts, career_stumpings, career_fours, career_sixes, strike_rate, economy FROM player_stats WHERE user_id = $1`
-	err := database.DB.Get(&playerStats, query, userID)
+	query := `SELECT id, user_id, batting_style, bowling_style, career_matches, career_runs, career_wickets, career_catches, career_runouts, career_stumpings, career_fours, career_sixes, strike_rate, economy FROM player_stats WHERE id = $1`
+	err := database.DB.Get(&playerStats, query, playerID)
 
 	if err != nil {
 		return nil, err
