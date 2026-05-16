@@ -27,7 +27,7 @@ func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 
 	var user models.User
 	query := `SELECT id, name, phone_no, password FROM users WHERE phone_no = $1 AND archived_at IS NULL`
-	err := database.DB.Get(&user, query, phoneNo)
+	err := database.DB.Get(&user, query, phoneNo) // return exactly one row
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,6 @@ func CreateUserSession(userID string) (string, error) {
 func DeleteUserSession(sessionID string) error {
 
 	query := `UPDATE user_sessions SET archived_at = NOW() WHERE id = $1 AND archived_at IS NULL`
-	_, err := database.DB.Exec(query, sessionID)
+	_, err := database.DB.Exec(query, sessionID) // modifies the database but does not return any rows
 	return err
 }

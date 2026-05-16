@@ -11,5 +11,6 @@ func PlayerStatsRoutes(r *gin.Engine) {
 	{
 		playerStats.POST("", handler.CreatePlayerStats)
 		playerStats.GET("", handler.GetPlayerStats)
+		playerStats.PUT("", handler.UpdatePlayerStats)
 	}
 }

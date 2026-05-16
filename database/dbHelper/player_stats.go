@@ -30,3 +30,9 @@ func GetPlayerStatsByUserID(userID string) (*models.PlayerStats, error) {
 	}
 	return &playerStats, nil
 }
+
+func UpdatePlayerStats(userID, battingStyle, bowlingStyle string) error {
+	query := `UPDATE player_stats SET batting_style = $1, bowling_style = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3`
+	_, err := database.DB.Exec(query, battingStyle, bowlingStyle, userID)
+	return err
+}

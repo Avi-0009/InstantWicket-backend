@@ -5,6 +5,11 @@ type CreatePlayerStats struct {
 	BowlingStyle string `json:"bowling_style"`
 }
 
+type UpdatePlayerStats struct {
+	BattingStyle string `json:"batting_style"`
+	BowlingStyle string `json:"bowling_style"`
+}
+
 type PlayerStats struct {
 	ID              string  `db:"id" json:"id"`
 	UserID          string  `db:"user_id" json:"user_id"`

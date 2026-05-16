@@ -67,3 +67,26 @@ func GetPlayerStats(c *gin.Context) {
 	fmt.Println("3")
 	c.JSON(http.StatusOK, gin.H{"player_stats": playerStats})
 }
+
+func UpdatePlayerStats(c *gin.Context) {
+	UserID := c.GetString("userID")
+
+	if UserID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	fmt.Println("1")
+	var input models.UpdatePlayerStats
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	fmt.Println("2")
+	err := dbHelper.UpdatePlayerStats(UserID, input.BattingStyle, input.BowlingStyle)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	fmt.Println("3")
+	c.JSON(http.StatusOK, gin.H{"message": "Player stats updated successfully"})
+}
