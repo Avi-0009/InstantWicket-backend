@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Avi-0009/InstantWicket-backend/database/dbHelper"
@@ -63,12 +64,12 @@ func CreatePlayerStats(c *gin.Context) {
 
 func GetPlayerStats(c *gin.Context) {
 	playerID := c.Param("player_id")
-	//fmt.Println("1")
+	//fmt.Println("x")
 	if playerID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID is required"})
 		return
 	}
-	//fmt.Println("2")
+	//fmt.Println("y")
 
 	playerStats, err := dbHelper.GetPlayerStatsByPlayerID(playerID)
 
@@ -76,7 +77,7 @@ func GetPlayerStats(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Player stats not found"})
 		return
 	}
-	//fmt.Println("3")
+	fmt.Println("z")
 	c.JSON(http.StatusOK, gin.H{"player_stats": playerStats})
 }
 

@@ -30,7 +30,55 @@ func GetPlayerIDByUserID(userID string) (string, error) {
 func GetPlayerStatsByPlayerID(playerID string) (*models.PlayerStats, error) {
 	var playerStats models.PlayerStats
 
-	query := `SELECT id, user_id, batting_style, bowling_style, career_matches, career_runs, career_wickets, career_catches, career_runouts, career_stumpings, career_fours, career_sixes, strike_rate, economy FROM player_stats WHERE id = $1`
+	query := `
+	SELECT 
+		id,
+		user_id,
+		batting_style,
+		bowling_style,
+
+		career_matches,
+		career_matches_won,
+		career_matches_lost,
+
+		career_runs,
+		career_balls_faced,
+		career_innings_batted,
+		career_not_outs,
+		career_highest_score,
+		career_ducks,
+		career_golden_ducks,
+		career_fifties,
+		career_hundreds,
+		career_fours,
+		career_sixes,
+		strike_rate,
+
+		career_wickets,
+		career_balls_bowled,
+		career_runs_conceded,
+		career_maiden_overs,
+		career_wides,
+		career_no_balls,
+		career_best_bowling_wickets,
+		career_best_bowling_runs,
+		career_innings_bowled,
+		economy,
+
+		career_catches,
+		career_runouts,
+		career_stumpings,
+
+		career_total_points,
+		career_mvps,
+		
+		created_at,
+		updated_at,
+		archived_at
+
+	FROM player_stats
+	WHERE id = $1
+`
 	err := database.DB.Get(&playerStats, query, playerID)
 
 	if err != nil {
