@@ -9,6 +9,7 @@ import (
 func PlayerStatsRoutes(r *gin.Engine) {
 	playerStats := r.Group("/v1/player_stats")
 	{
+		playerStats.GET("", handler.GetAllPlayerStats)
 		playerStats.GET("/:player_id", handler.GetPlayerStats)
 	}
 	protected := playerStats.Group("", middleware.AuthMiddleware())

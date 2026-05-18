@@ -81,6 +81,16 @@ func GetPlayerStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"player_stats": playerStats})
 }
 
+func GetAllPlayerStats(c *gin.Context) {
+	playerStats, err := dbHelper.GetAllPlayersStats()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch player stats"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"player_stats": playerStats})
+}
+
 func UpdatePlayerStats(c *gin.Context) {
 	UserID := c.GetString("userID")
 

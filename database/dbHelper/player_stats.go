@@ -87,6 +87,66 @@ func GetPlayerStatsByPlayerID(playerID string) (*models.PlayerStats, error) {
 	return &playerStats, nil
 }
 
+func GetAllPlayersStats() ([]models.PlayerStats, error) {
+	var playerStats []models.PlayerStats
+	query := `
+		SELECT 
+			id,
+			user_id,
+			batting_style,
+			bowling_style,
+
+			career_matches,
+			career_matches_won,
+			career_matches_lost,
+
+			career_runs,
+			career_balls_faced,
+			career_innings_batted,
+			career_not_outs,
+			career_highest_score,
+			career_ducks,
+			career_golden_ducks,
+			career_fifties,
+			career_hundreds,
+			career_fours,
+			career_sixes,
+			strike_rate,
+
+			career_wickets,
+			career_balls_bowled,
+			career_runs_conceded,
+			career_maiden_overs,
+			career_wides,
+			career_no_balls,
+			career_best_bowling_wickets,
+			career_best_bowling_runs,
+			career_innings_bowled,
+			economy,
+
+			career_catches,
+			career_runouts,
+			career_stumpings,
+
+			career_total_points,
+			career_mvps,
+			
+			created_at,
+			updated_at,
+			archived_at
+
+		FROM player_stats
+		ORDER BY career_runs DESC
+	`
+
+	err := database.DB.Select(&playerStats, query)
+
+	if err != nil {
+		return nil, err
+	}
+	return playerStats, nil
+}
+
 func UpdatePlayerStats(userID, battingStyle, bowlingStyle string) error {
 	query := `UPDATE player_stats SET batting_style = $1, bowling_style = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3`
 	_, err := database.DB.Exec(query, battingStyle, bowlingStyle, userID)
