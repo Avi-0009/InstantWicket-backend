@@ -38,5 +38,6 @@ func NewServer() *gin.Engine {
 	// 2. Load your routes AFTER the middleware
 	UserRoutes(r)
 	PlayerStatsRoutes(r)
+	MatchRoutes(r)
 	return r
 }
