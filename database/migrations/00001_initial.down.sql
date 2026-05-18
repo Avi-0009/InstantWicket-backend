@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS live_match_stats;
+DROP TABLE IF EXISTS player_match_stats;
+DROP TABLE IF EXISTS balls;
+DROP TABLE IF EXISTS innings;
+DROP TABLE IF EXISTS match_players;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS teams;
+DROP TABLE IF EXISTS player_stats;
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS users;

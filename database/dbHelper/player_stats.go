@@ -147,6 +147,32 @@ func GetAllPlayersStats() ([]models.PlayerStats, error) {
 	return playerStats, nil
 }
 
+func SearchPlayerStats(query string) ([]models.PlayerSearchResponse, error) {
+
+	var playerStats []models.PlayerSearchResponse
+
+	search := "%" + query + "%"
+
+	sqlQuery := `	
+				SELECT 
+				    ps.id AS player_id,
+				    ps.user_id, u.name, 
+				    u.phone_no, 
+				     ps.career_runs, 
+				     ps.career_wickets 
+				FROM player_stats AS ps
+				JOIN users u ON ps.user_id = u.id
+				WHERE LOWER(u.name) LIKE LOWER($1) OR u.phone_no LIKE $1
+				ORDER BY ps.career_runs DESC
+				LIMIT 10
+				`
+	err := database.DB.Select(&playerStats, sqlQuery, search)
+	if err != nil {
+		return nil, err
+	}
+	return playerStats, nil
+}
+
 func UpdatePlayerStats(userID, battingStyle, bowlingStyle string) error {
 	query := `UPDATE player_stats SET batting_style = $1, bowling_style = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3`
 	_, err := database.DB.Exec(query, battingStyle, bowlingStyle, userID)

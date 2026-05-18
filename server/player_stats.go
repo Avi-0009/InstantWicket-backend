@@ -11,6 +11,7 @@ func PlayerStatsRoutes(r *gin.Engine) {
 	{
 		playerStats.GET("", handler.GetAllPlayerStats)
 		playerStats.GET("/:player_id", handler.GetPlayerStats)
+		playerStats.GET("/search", handler.SearchPlayerStats)
 	}
 	protected := playerStats.Group("", middleware.AuthMiddleware())
 	{

@@ -10,6 +10,14 @@ type UpdatePlayerStats struct {
 	BowlingStyle string `json:"bowling_style"`
 }
 
+type PlayerSearchResponse struct {
+	PlayerID      string `db:"player_id" json:"player_id"`
+	UserID        string `db:"user_id" json:"user_id"`
+	Name          string `db:"name" json:"name"`
+	PhoneNo       string `db:"phone_no" json:"phone_no"`
+	CareerRuns    int64  `db:"career_runs" json:"career_runs"`
+	CareerWickets int64  `db:"career_wickets" json:"career_wickets"`
+}
 type PlayerStats struct {
 	ID                       string  `db:"id" json:"id"`
 	UserID                   string  `db:"user_id" json:"user_id"`

@@ -113,3 +113,24 @@ func UpdatePlayerStats(c *gin.Context) {
 	//fmt.Println("3")
 	c.JSON(http.StatusOK, gin.H{"message": "Player stats updated successfully"})
 }
+
+func SearchPlayerStats(c *gin.Context) {
+
+	query := c.Query("q")
+
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "query is required",
+		})
+		return
+	}
+
+	players, err := dbHelper.SearchPlayerStats(query)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"players": players})
+}
