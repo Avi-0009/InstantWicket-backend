@@ -38,3 +38,17 @@ func GetMatches(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"matches": matches})
 }
+
+func GetMatchByID(c *gin.Context) {
+	matchID := c.Param("match_id")
+	if matchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "match_id is required"})
+		return
+	}
+	match, err := dbHelper.GetMatchByID(matchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "match not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"match": match})
+}
