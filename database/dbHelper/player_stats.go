@@ -32,52 +32,54 @@ func GetPlayerStatsByPlayerID(playerID string) (*models.PlayerStats, error) {
 
 	query := `
 	SELECT 
-		id,
-		user_id,
-		batting_style,
-		bowling_style,
+		ps.id,
+		ps.user_id,
+		u.name, 
+		ps.batting_style,
+		ps.bowling_style,
 
-		career_matches,
-		career_matches_won,
-		career_matches_lost,
+		ps.career_matches,
+		ps.career_matches_won,
+		ps.career_matches_lost,
 
-		career_runs,
-		career_balls_faced,
-		career_innings_batted,
-		career_not_outs,
-		career_highest_score,
-		career_ducks,
-		career_golden_ducks,
-		career_fifties,
-		career_hundreds,
-		career_fours,
-		career_sixes,
-		strike_rate,
+		ps.career_runs,
+		ps.career_balls_faced,
+		ps.career_innings_batted,
+		ps.career_not_outs,
+		ps.career_highest_score,
+		ps.career_ducks,
+		ps.career_golden_ducks,
+		ps.career_fifties,
+		ps.career_hundreds,
+		ps.career_fours,
+		ps.career_sixes,
+		ps.strike_rate,
 
-		career_wickets,
-		career_balls_bowled,
-		career_runs_conceded,
-		career_maiden_overs,
-		career_wides,
-		career_no_balls,
-		career_best_bowling_wickets,
-		career_best_bowling_runs,
-		career_innings_bowled,
-		economy,
+		ps.career_wickets,
+		ps.career_balls_bowled,
+		ps.career_runs_conceded,
+		ps.career_maiden_overs,
+		ps.career_wides,
+		ps.career_no_balls,
+		ps.career_best_bowling_wickets,
+		ps.career_best_bowling_runs,
+		ps.career_innings_bowled,
+		ps.economy,
 
-		career_catches,
-		career_runouts,
-		career_stumpings,
+		ps.career_catches,
+		ps.career_runouts,
+		ps.career_stumpings,
 
-		career_total_points,
-		career_mvps,
+		ps.career_total_points,
+		ps.career_mvps,
 		
-		created_at,
-		updated_at,
-		archived_at
+		ps.created_at,
+		ps.updated_at,
+		ps.archived_at
 
-	FROM player_stats
-	WHERE id = $1
+	FROM player_stats ps
+	JOIN users u ON ps.user_id = u.id
+	WHERE ps.id = $1
 `
 	err := database.DB.Get(&playerStats, query, playerID)
 
@@ -91,52 +93,55 @@ func GetAllPlayersStats() ([]models.PlayerStats, error) {
 	var playerStats []models.PlayerStats
 	query := `
 		SELECT 
-			id,
-			user_id,
-			batting_style,
-			bowling_style,
+			player_stats.id,
+			player_stats.user_id,
+			player_stats.batting_style,
+			player_stats.bowling_style,
 
-			career_matches,
-			career_matches_won,
-			career_matches_lost,
+			player_stats.career_matches,
+			player_stats.career_matches_won,
+			player_stats.career_matches_lost,
 
-			career_runs,
-			career_balls_faced,
-			career_innings_batted,
-			career_not_outs,
-			career_highest_score,
-			career_ducks,
-			career_golden_ducks,
-			career_fifties,
-			career_hundreds,
-			career_fours,
-			career_sixes,
-			strike_rate,
+			player_stats.career_runs,
+			player_stats.career_balls_faced,
+			player_stats.career_innings_batted,
+			player_stats.career_not_outs,
+			player_stats.career_highest_score,
+			player_stats.career_ducks,
+			player_stats.career_golden_ducks,
+			player_stats.career_fifties,
+			player_stats.career_hundreds,
+			player_stats.career_fours,
+			player_stats.career_sixes,
+			player_stats.strike_rate,
 
-			career_wickets,
-			career_balls_bowled,
-			career_runs_conceded,
-			career_maiden_overs,
-			career_wides,
-			career_no_balls,
-			career_best_bowling_wickets,
-			career_best_bowling_runs,
-			career_innings_bowled,
-			economy,
+			player_stats.career_wickets,
+			player_stats.career_balls_bowled,
+			player_stats.career_runs_conceded,
+			player_stats.career_maiden_overs,
+			player_stats.career_wides,
+			player_stats.career_no_balls,
+			player_stats.career_best_bowling_wickets,
+			player_stats.career_best_bowling_runs,
+			player_stats.career_innings_bowled,
+			player_stats.economy,
 
-			career_catches,
-			career_runouts,
-			career_stumpings,
+			player_stats.career_catches,
+			player_stats.career_runouts,
+			player_stats.career_stumpings,
 
-			career_total_points,
-			career_mvps,
+			player_stats.career_total_points,
+			player_stats.career_mvps,
 			
-			created_at,
-			updated_at,
-			archived_at
+			player_stats.created_at,
+			player_stats.updated_at,
+			player_stats.archived_at, 
+            u.name
 
 		FROM player_stats
-		ORDER BY career_runs DESC
+		JOIN users u ON player_stats.user_id = u.id 
+		WHERE player_stats.archived_at IS NULL
+		ORDER BY player_stats.career_runs DESC
 	`
 
 	err := database.DB.Select(&playerStats, query)

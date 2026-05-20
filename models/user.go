@@ -17,3 +17,8 @@ type User struct {
 	PhoneNo  string `db:"phone_no" json:"phone_no"`
 	Password string `db:"password" json:"-"`
 }
+
+type ResetPassword struct {
+	PhoneNo  string `json:"phone_no" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}

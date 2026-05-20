@@ -34,6 +34,12 @@ func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 	return &user, nil
 }
 
+func UpdatePasswordByPhone(phoneNo, newPassword string) error {
+	query := `UPDATE users SET password = $1 WHERE phone_no = $2 AND archived_at IS NULL`
+	_, err := database.DB.Exec(query, newPassword, phoneNo)
+	return err
+}
+
 func CreateUserSession(userID string) (string, error) {
 
 	var sessionID string

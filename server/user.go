@@ -13,6 +13,7 @@ func UserRoutes(r *gin.Engine) {
 	{
 		user.POST("/register", handler.Register)
 		user.POST("/login", handler.LoginUser)
+		user.PUT("/reset-password", handler.ResetPassword)
 
 		user.POST(
 			"/logout",

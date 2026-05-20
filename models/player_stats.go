@@ -21,6 +21,7 @@ type PlayerSearchResponse struct {
 type PlayerStats struct {
 	ID                       string  `db:"id" json:"id"`
 	UserID                   string  `db:"user_id" json:"user_id"`
+	Name                     string  `db:"name" json:"name"`
 	BattingStyle             string  `db:"batting_style" json:"batting_style"`
 	BowlingStyle             string  `db:"bowling_style" json:"bowling_style"`
 	CareerMatches            int64   `db:"career_matches" json:"career_matches"`

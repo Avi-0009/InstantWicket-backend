@@ -122,3 +122,16 @@ func LogoutUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }
+
+func ResetPassword(c *gin.Context) {
+	var input models.ResetPassword
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	err := dbHelper.UpdatePasswordByPhone(input.PhoneNo, input.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+}
