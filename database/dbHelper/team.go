@@ -1,6 +1,9 @@
 package dbHelper
 
-import "github.com/Avi-0009/InstantWicket-backend/database"
+import (
+	"github.com/Avi-0009/InstantWicket-backend/database"
+	"github.com/Avi-0009/InstantWicket-backend/models"
+)
 
 func CreateTeam(name, createdBy string) (string, error) {
 	var teamID string
@@ -10,4 +13,27 @@ func CreateTeam(name, createdBy string) (string, error) {
 		return "", err
 	}
 	return teamID, nil
+}
+
+func GetTeams() ([]models.Team, error) {
+	var teams []models.Team
+	query := `SELECT id, name, created_by, created_at, updated_at FROM teams ORDER BY created_at DESC`
+	err := database.DB.Select(&teams, query)
+	if err != nil {
+		return nil, err
+	}
+	return teams, nil
+}
+
+func GetTeam(teamID string) (*models.Team, error) {
+	var team models.Team
+
+	query := `SELECT id, name, created_by, created_at, updated_at FROM teams ORDER BY created_at DESC`
+
+	err := database.DB.Get(&team, query, teamID)
+
+	if err != nil {
+		return nil, err
+	}
+	return &team, nil
 }

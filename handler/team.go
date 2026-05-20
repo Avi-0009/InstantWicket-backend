@@ -32,3 +32,26 @@ func CreateTeam(c *gin.Context) {
 		"teamID":  teamID,
 	})
 }
+
+func GetTeams(c *gin.Context) {
+	teams, err := dbHelper.GetTeams()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"teams": teams,
+	})
+}
+
+func GetTeam(c *gin.Context) {
+	teamID := c.Param("teamID")
+	team, err := dbHelper.GetTeam(teamID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "team not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"team": team,
+	})
+}

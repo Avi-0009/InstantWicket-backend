@@ -10,12 +10,15 @@ import (
 func TeamRoutes(r *gin.Engine) {
 
 	team := r.Group("/v1/teams")
+	{
+		team.GET("", handler.GetTeams)
 
+		team.GET("/:team_id", handler.GetTeam)
+	}
 	protected := team.Group(
 		"",
 		middleware.AuthMiddleware(),
 	)
-
 	{
 		protected.POST("", handler.CreateTeam)
 	}
