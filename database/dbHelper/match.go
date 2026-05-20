@@ -46,3 +46,18 @@ func CreateMatch(input models.CreateMatch, createdBy string) (string, error) {
 	}
 	return matchID, nil
 }
+
+func GetMatches() ([]models.Match, error) {
+	var matches []models.Match
+
+	query := `SELECT id, team_a_id, team_b_id, toss_winner_team_id, toss_decision, allow_commom_player, allow_solo_batting, over_limit, status, winner_team_id, man_of_match, worst_player, umpire_id 
+			FROM matches
+			ORDER BY created_at DESC`
+
+	err := database.DB.Select(&matches, query)
+
+	if err != nil {
+		return nil, err
+	}
+	return matches, nil
+}

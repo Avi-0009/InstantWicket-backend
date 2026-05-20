@@ -29,3 +29,12 @@ func CreateMatch(c *gin.Context) {
 		"match_id": matchID,
 	})
 }
+
+func GetMatches(c *gin.Context) {
+	matches, err := dbHelper.GetMatches()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"matches": matches})
+}
