@@ -37,3 +37,9 @@ func GetTeam(teamID string) (*models.Team, error) {
 	}
 	return &team, nil
 }
+
+func UpdateTeam(teamID, name string) error {
+	query := `UPDATE teams SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := database.DB.Exec(query, name, teamID)
+	return err
+}

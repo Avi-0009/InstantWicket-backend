@@ -45,7 +45,7 @@ func GetTeams(c *gin.Context) {
 }
 
 func GetTeam(c *gin.Context) {
-	teamID := c.Param("teamID")
+	teamID := c.Param("team_id")
 	team, err := dbHelper.GetTeam(teamID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "team not found"})
@@ -54,4 +54,19 @@ func GetTeam(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"team": team,
 	})
+}
+
+func UpdateTeam(c *gin.Context) {
+	teamID := c.Param("team_id")
+	var input models.UpdateTeam
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	err := dbHelper.UpdateTeam(teamID, input.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Team updated successfully"})
 }
