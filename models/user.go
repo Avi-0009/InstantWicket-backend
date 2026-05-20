@@ -20,5 +20,5 @@ type User struct {
 
 type ResetPassword struct {
 	PhoneNo  string `json:"phone_no" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Password string `json:"password" binding:"required,min=6"`
 }

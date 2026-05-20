@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/Avi-0009/InstantWicket-backend/database/dbHelper"
 	"github.com/Avi-0009/InstantWicket-backend/models"
 	"github.com/Avi-0009/InstantWicket-backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Register(c *gin.Context) {
@@ -124,14 +127,52 @@ func LogoutUser(c *gin.Context) {
 }
 
 func ResetPassword(c *gin.Context) {
-	var input models.ResetPassword
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+
+	var userReq models.ResetPassword
+
+	if err := c.ShouldBindJSON(&userReq); err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
-	err := dbHelper.UpdatePasswordByPhone(input.PhoneNo, input.Password)
+
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(userReq.Password),
+		bcrypt.DefaultCost,
+	)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to hash password",
+		})
+		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+
+	_, err = dbHelper.UpdatePassword(
+		userReq.PhoneNo,
+		string(hashedPassword),
+	)
+
+	if err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
+
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "user not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to update password",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "password updated successfully",
+	})
 }
