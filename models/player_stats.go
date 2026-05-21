@@ -5,6 +5,11 @@ type CreatePlayerStats struct {
 	BowlingStyle string `json:"bowling_style"`
 }
 
+type AddGuestPlayer struct {
+	Name    string `json:"name" binding:"required"`
+	PhoneNo string `json:"phone_no" binding:"required"`
+}
+
 type UpdatePlayerStats struct {
 	BattingStyle string `json:"batting_style"`
 	BowlingStyle string `json:"bowling_style"`

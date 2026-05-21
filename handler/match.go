@@ -14,18 +14,49 @@ func CreateMatch(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	var input models.CreateMatch
+
+	var input models.StartLiveMatchRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-	matchID, err := dbHelper.CreateMatch(input, userID)
+
+	teamAID, err := dbHelper.CreateTeam(input.TeamAName, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Team A"})
+		return
+	}
+
+	teamBID, err := dbHelper.CreateTeam(input.TeamBName, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Team B"})
+		return
+	}
+
+	tossWinnerTeamID := teamAID
+	if input.TossWinner == "B" {
+		tossWinnerTeamID = teamBID
+	}
+
+	matchInput := models.CreateMatch{
+		TeamAID:           teamAID,
+		TeamBID:           teamBID,
+		TossWinnerTeamID:  tossWinnerTeamID,
+		TossDecision:      input.TossDecision,
+		AllowCommonPlayer: input.AllowCommonPlayer,
+		AllowSoloBatting:  input.AllowSoloBatting,
+		OversLimit:        input.OversLimit,
+		UmpireID:          input.UmpireID,
+	}
+
+	matchID, err := dbHelper.CreateMatch(matchInput, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{
-		"message":  "Match created successfully",
+		"message":  "Match and Teams created successfully",
 		"match_id": matchID,
 	})
 }

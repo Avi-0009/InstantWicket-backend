@@ -62,6 +62,25 @@ func CreatePlayerStats(c *gin.Context) {
 	})
 }
 
+func AddGuest(c *gin.Context) {
+	var input models.AddGuestPlayer
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	playerID, err := dbHelper.AddGuest(input.Name, input.PhoneNo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add guest"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"message":   "Player stats added successfully",
+		"player_id": playerID,
+		"name":      input.Name,
+		"phone_no":  input.PhoneNo,
+	})
+}
+
 func GetPlayerStats(c *gin.Context) {
 	playerID := c.Param("player_id")
 	//fmt.Println("x")

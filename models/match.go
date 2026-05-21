@@ -12,11 +12,22 @@ type CreateMatch struct {
 	UmpireID          string `json:"umpire_id"`
 }
 
+type StartLiveMatchRequest struct {
+	TeamAName         string `json:"team_a_name"`
+	TeamBName         string `json:"team_b_name"`
+	TossWinner        string `json:"toss_winner_team_id"`
+	TossDecision      string `json:"toss_decision"`
+	AllowCommonPlayer bool   `json:"allow_common_player"`
+	AllowSoloBatting  bool   `json:"allow_solo_batting"`
+	OversLimit        int64  `json:"overs_limit"`
+	UmpireID          string `json:"umpire_id"`
+}
+
 type Match struct {
 	ID                string `db:"id" json:"id"`
 	TeamAID           string `db:"team_a_id" json:"team_a_id"`
 	TeamBID           string `db:"team_b_id" json:"team_b_id"`
-	TossWinnerTeamID  string `db:"tos_winner_team_id" json:"tos_winner_team_id"`
+	TossWinner        string `db:"tos_winner_team_id" json:"tos_winner_team_id"`
 	TossDecision      string `db:"toss_decision" json:"toss_decision"`
 	AllowCommonPlayer bool   `db:"allow_common_player" json:"allow_common_player"`
 	AllowSoloBatting  bool   `db:"allow_solo_batting" json:"allow_solo_batting"`

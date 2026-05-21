@@ -20,6 +20,22 @@ func CreatePlayerStats(userID, battingStyle, bowlingStyle string) (string, error
 	return playerID, err
 }
 
+func AddGuest(name, phoneNo string) (string, error) {
+	var userID string
+
+	userQuery := `INSERT INTO users (name, phone_no, password) VALUES ($1, $2, 'guest_account') ON CONFLICT (phone_no) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
+	err := database.DB.Get(&userID, userQuery, name, phoneNo)
+	if err != nil {
+		return "", err
+	}
+
+	var playerID string
+	statsQuery := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right-hand bat', 'Right-arm medium') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
+
+	err = database.DB.Get(&playerID, statsQuery, userID)
+	return playerID, err
+}
+
 func GetPlayerIDByUserID(userID string) (string, error) {
 	var playerID string
 	query := `SELECT id FROM player_stats WHERE user_id = $1`
