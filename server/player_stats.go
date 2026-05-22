@@ -15,8 +15,8 @@ func PlayerStatsRoutes(r *gin.Engine) {
 	}
 	protected := playerStats.Group("", middleware.AuthMiddleware())
 	{
-		protected.POST("", handler.CreatePlayerStats)
-		protected.PUT("", handler.UpdatePlayerStats)
+		//protected.POST("", handler.CreatePlayerStats)
+		protected.PUT("/:player_id", handler.UpdatePlayerStats)
 		protected.POST("/guest", handler.AddGuest)
 	}
 	//playerStats := r.Group("/v1/player_stats", middleware.AuthMiddleware())

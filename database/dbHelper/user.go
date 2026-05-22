@@ -16,11 +16,11 @@ func IsUserExist(phoneNo string) (bool, error) {
 	return exist, err
 }
 
-func CreateUser(name, phoneNo, password string) error {
-
-	query := `INSERT INTO users (name, phone_no, password)VALUES ($1, $2, $3)`
-	_, err := database.DB.Exec(query, name, phoneNo, password)
-	return err
+func CreateUser(name, phoneNo, password string) (string, error) {
+	var userID string
+	query := `INSERT INTO users (name, phone_no, password)VALUES ($1, $2, $3) RETURNING id`
+	err := database.DB.Get(&userID, query, name, phoneNo, password)
+	return userID, err
 }
 
 func GetUserByPhoneNo(phoneNo string) (*models.User, error) {

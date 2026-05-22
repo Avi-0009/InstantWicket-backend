@@ -26,7 +26,9 @@ type StartLiveMatchRequest struct {
 type Match struct {
 	ID                string `db:"id" json:"id"`
 	TeamAID           string `db:"team_a_id" json:"team_a_id"`
+	TeamAName         string `db:"team_a_name" json:"team_a_name"`
 	TeamBID           string `db:"team_b_id" json:"team_b_id"`
+	TeamBName         string `db:"team_b_name" json:"team_b_name"`
 	TossWinner        string `db:"tos_winner_team_id" json:"tos_winner_team_id"`
 	TossDecision      string `db:"toss_decision" json:"toss_decision"`
 	AllowCommonPlayer bool   `db:"allow_common_player" json:"allow_common_player"`

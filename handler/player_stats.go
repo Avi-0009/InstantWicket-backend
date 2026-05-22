@@ -10,57 +10,57 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CreatePlayerStats(c *gin.Context) {
-
-	userID := c.GetString("userID")
-
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	var input models.CreatePlayerStats
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-
-	isExist, err := dbHelper.IsPlayerStatsExist(
-		userID,
-	)
-	//fmt.Println("1")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	//fmt.Println("2")
-	if isExist {
-		playerID, err := dbHelper.GetPlayerIDByUserID(userID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"error":     "Player stats already exists",
-			"player_id": playerID,
-		})
-		return
-	}
-
-	playerID, err := dbHelper.CreatePlayerStats(userID, input.BattingStyle, input.BowlingStyle)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message":  "Player stats created successfully",
-		"playerID": playerID,
-	})
-}
+//func CreatePlayerStats(c *gin.Context) {
+//
+//	userID := c.GetString("userID")
+//
+//	if userID == "" {
+//		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+//		return
+//	}
+//
+//	var input models.CreatePlayerStats
+//
+//	if err := c.ShouldBindJSON(&input); err != nil {
+//		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+//		return
+//	}
+//
+//	isExist, err := dbHelper.IsPlayerStatsExist(
+//		userID,
+//	)
+//	//fmt.Println("1")
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+//		return
+//	}
+//	//fmt.Println("2")
+//	if isExist {
+//		playerID, err := dbHelper.GetPlayerIDByUserID(userID)
+//		if err != nil {
+//			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+//			return
+//		}
+//
+//		c.JSON(http.StatusOK, gin.H{
+//			"error":     "Player stats already exists",
+//			"player_id": playerID,
+//		})
+//		return
+//	}
+//
+//	playerID, err := dbHelper.CreatePlayerStats(userID, input.BattingStyle, input.BowlingStyle)
+//
+//	if err != nil {
+//		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+//		return
+//	}
+//
+//	c.JSON(http.StatusCreated, gin.H{
+//		"message":  "Player stats created successfully",
+//		"playerID": playerID,
+//	})
+//}
 
 func AddGuest(c *gin.Context) {
 	var input models.AddGuestPlayer

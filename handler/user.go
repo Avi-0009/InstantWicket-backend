@@ -21,10 +21,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	isUserExist, err := dbHelper.IsUserExist(
-		input.PhoneNo,
-	)
-
+	isUserExist, err := dbHelper.IsUserExist(input.PhoneNo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
@@ -35,23 +32,24 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := utils.HashPassword(
-		input.Password,
-	)
-
+	hashedPassword, err := utils.HashPassword(input.Password)
 	if err != nil {
 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
 
-	err = dbHelper.CreateUser(input.Name, input.PhoneNo, hashedPassword)
-
+	userID, err := dbHelper.CreateUser(input.Name, input.PhoneNo, hashedPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
+	err = dbHelper.CreatePlayerStats(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create player stats"})
+		return
+	}
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 

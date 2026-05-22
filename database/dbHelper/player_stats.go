@@ -13,11 +13,10 @@ func IsPlayerStatsExist(userID string) (bool, error) {
 	return exist, err
 }
 
-func CreatePlayerStats(userID, battingStyle, bowlingStyle string) (string, error) {
-	var playerID string
-	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, $2, $3) RETURNING id`
-	err := database.DB.Get(&playerID, query, userID, battingStyle, bowlingStyle)
-	return playerID, err
+func CreatePlayerStats(userID string) error {
+	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right Handed', 'Right Arm Fast')`
+	_, err := database.DB.Exec(query, userID)
+	return err
 }
 
 func AddGuest(name, phoneNo string) (string, error) {
