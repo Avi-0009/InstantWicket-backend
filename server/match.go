@@ -14,6 +14,6 @@ func MatchRoutes(r *gin.Engine) {
 	}
 	protected := match.Group("", middleware.AuthMiddleware())
 	{
-		protected.POST("", handler.CreateMatch)
+		protected.POST("/match", handler.CreateMatch)
 	}
 }

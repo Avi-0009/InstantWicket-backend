@@ -8,6 +8,10 @@ import (
 
 func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (string, error) {
 	var matchID string
+	var dbUmpireID interface{} = input.UmpireID
+	if input.UmpireID == "" {
+		dbUmpireID = nil
+	}
 	query := `INSERT INTO matches (
                      team_a_id,
                      team_b_id,
@@ -23,7 +27,7 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (strin
                      )
                      RETURNING id
 `
-	err := tx.Get(&matchID, query, input.TeamAID, input.TeamBID, input.TossWinnerTeamID, input.TossDecision, input.AllowCommonPlayer, input.AllowSoloBatting, input.OversLimit, input.UmpireID, createdBy)
+	err := tx.Get(&matchID, query, input.TeamAID, input.TeamBID, input.TossWinnerTeamID, input.TossDecision, input.AllowCommonPlayer, input.AllowSoloBatting, input.OversLimit, dbUmpireID, createdBy)
 	if err != nil {
 		return "", err
 	}

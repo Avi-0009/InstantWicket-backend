@@ -29,10 +29,8 @@ func GetTeams() ([]models.Team, error) {
 func GetTeam(teamID string) (*models.Team, error) {
 	var team models.Team
 
-	query := `SELECT id, name, created_by, created_at, updated_at FROM teams ORDER BY created_at DESC`
-
+	query := `SELECT id, name, created_by, created_at, updated_at FROM teams WHERE id = $1`
 	err := database.DB.Get(&team, query, teamID)
-
 	if err != nil {
 		return nil, err
 	}
