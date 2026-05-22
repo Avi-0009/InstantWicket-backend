@@ -1,13 +1,16 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
+	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/database/dbHelper"
 	"github.com/Avi-0009/InstantWicket-backend/models"
 	"github.com/Avi-0009/InstantWicket-backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -39,17 +42,24 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	userID, err := dbHelper.CreateUser(input.Name, input.PhoneNo, hashedPassword)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-		return
-	}
+	err = database.WithTransaction(context.Background(), func(tx *sqlx.Tx) error {
 
-	err = dbHelper.CreatePlayerStats(userID)
+		userID, err := dbHelper.CreateUser(tx, input.Name, input.PhoneNo, hashedPassword)
+		if err != nil {
+			return err
+		}
+
+		err = dbHelper.CreatePlayerStats(tx, userID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create player stats"})
 		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 

@@ -3,6 +3,7 @@ package dbHelper
 import (
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
+	"github.com/jmoiron/sqlx"
 )
 
 func IsPlayerStatsExist(userID string) (bool, error) {
@@ -13,9 +14,9 @@ func IsPlayerStatsExist(userID string) (bool, error) {
 	return exist, err
 }
 
-func CreatePlayerStats(userID string) error {
+func CreatePlayerStats(tx *sqlx.Tx, userID string) error {
 	query := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right Handed', 'Right Arm Fast')`
-	_, err := database.DB.Exec(query, userID)
+	_, err := tx.Exec(query, userID)
 	return err
 }
 

@@ -19,7 +19,7 @@ func TeamRoutes(r *gin.Engine) {
 		middleware.AuthMiddleware(),
 	)
 	{
-		protected.POST("", handler.CreateTeam)
+		//protected.POST("", handler.CreateTeam)
 		protected.PUT("/:team_id", handler.UpdateTeam)
 	}
 }

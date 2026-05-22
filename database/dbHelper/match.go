@@ -3,9 +3,10 @@ package dbHelper
 import (
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
+	"github.com/jmoiron/sqlx"
 )
 
-func CreateMatch(input models.CreateMatch, createdBy string) (string, error) {
+func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (string, error) {
 	var matchID string
 	query := `INSERT INTO matches (
                      team_a_id,
@@ -22,25 +23,7 @@ func CreateMatch(input models.CreateMatch, createdBy string) (string, error) {
                      )
                      RETURNING id
 `
-	err := database.DB.Get(
-		&matchID,
-		query,
-
-		input.TeamAID,
-		input.TeamBID,
-
-		input.TossWinnerTeamID,
-		input.TossDecision,
-
-		input.AllowCommonPlayer,
-		input.AllowSoloBatting,
-
-		input.OversLimit,
-
-		input.UmpireID,
-
-		createdBy,
-	)
+	err := tx.Get(&matchID, query, input.TeamAID, input.TeamBID, input.TossWinnerTeamID, input.TossDecision, input.AllowCommonPlayer, input.AllowSoloBatting, input.OversLimit, input.UmpireID, createdBy)
 	if err != nil {
 		return "", err
 	}

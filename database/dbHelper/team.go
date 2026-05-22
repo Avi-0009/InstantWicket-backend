@@ -3,12 +3,13 @@ package dbHelper
 import (
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
+	"github.com/jmoiron/sqlx"
 )
 
-func CreateTeam(name, createdBy string) (string, error) {
+func CreateTeam(tx *sqlx.Tx, name, createdBy string) (string, error) {
 	var teamID string
 	query := `INSERT INTO teams (name, created_by) VALUES ($1, $2) RETURNING id`
-	err := database.DB.Get(&teamID, query, name, createdBy)
+	err := tx.Get(&teamID, query, name, createdBy)
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ package dbHelper
 import (
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
+	"github.com/jmoiron/sqlx"
 )
 
 func IsUserExist(phoneNo string) (bool, error) {
@@ -16,10 +17,10 @@ func IsUserExist(phoneNo string) (bool, error) {
 	return exist, err
 }
 
-func CreateUser(name, phoneNo, password string) (string, error) {
+func CreateUser(tx *sqlx.Tx, name, phoneNo, password string) (string, error) {
 	var userID string
 	query := `INSERT INTO users (name, phone_no, password)VALUES ($1, $2, $3) RETURNING id`
-	err := database.DB.Get(&userID, query, name, phoneNo, password)
+	err := tx.Get(&userID, query, name, phoneNo, password)
 	return userID, err
 }
 
