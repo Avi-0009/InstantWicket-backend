@@ -1,11 +1,10 @@
 package models
 
 type CreateMatch struct {
-	TeamAID          string `json:"team_a_id"`
-	TeamBID          string `json:"team_b_id"`
-	TossWinnerTeamID string `json:"toss_winner_team_id"`
-	TossDecision     string `json:"toss_decision"`
-	//Matchdate        string `json:"match_date"`
+	TeamAID           string `json:"team_a_id"`
+	TeamBID           string `json:"team_b_id"`
+	TossWinnerTeamID  string `json:"toss_winner_team_id"`
+	TossDecision      string `json:"toss_decision"`
 	AllowCommonPlayer bool   `json:"allow_common_player"`
 	AllowSoloBatting  bool   `json:"allow_solo_batting"`
 	OversLimit        int64  `json:"overs_limit"`
@@ -29,13 +28,13 @@ type Match struct {
 	TeamAName         string `db:"team_a_name" json:"team_a_name"`
 	TeamBID           string `db:"team_b_id" json:"team_b_id"`
 	TeamBName         string `db:"team_b_name" json:"team_b_name"`
-	TossWinner        string `db:"tos_winner_team_id" json:"tos_winner_team_id"`
+	TossWinner        string `db:"toss_winner_team_id" json:"toss_winner_team_id"`
 	TossDecision      string `db:"toss_decision" json:"toss_decision"`
-	AllowCommonPlayer bool   `db:"allow_common_player" json:"allow_common_player"`
+	AllowCommonPlayer bool   `db:"allow_commom_player" json:"allow_common_player"`
 	AllowSoloBatting  bool   `db:"allow_solo_batting" json:"allow_solo_batting"`
-	OversLimit        int64  `db:"overs_limit" json:"overs_limit"`
+	OversLimit        int64  `db:"over_limit" json:"overs_limit"`
 	Status            string `db:"status" json:"status"`
-	WinnerTeamID      string `json:"winner_team_id" json:"winner_team_id"`
+	WinnerTeamID      string `db:"winner_team_id" json:"winner_team_id"`
 	ManOfMatch        string `db:"man_of_match" json:"man_of_match"`
 	WorstPlayer       string `db:"worst_player" json:"worst_player"`
 	UmpireID          string `db:"umpire_id" json:"umpire_id"`

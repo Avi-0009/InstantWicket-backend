@@ -7,7 +7,7 @@ import (
 )
 
 func MatchRoutes(r *gin.Engine) {
-	match := r.Group("/v1/match")
+	match := r.Group("/v1/matches")
 	{
 		match.GET("", handler.GetMatches)
 		match.GET("/:match_id", handler.GetMatchByID)
