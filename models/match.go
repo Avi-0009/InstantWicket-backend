@@ -30,9 +30,9 @@ type Match struct {
 	TeamBName         string `db:"team_b_name" json:"team_b_name"`
 	TossWinner        string `db:"toss_winner_team_id" json:"toss_winner_team_id"`
 	TossDecision      string `db:"toss_decision" json:"toss_decision"`
-	AllowCommonPlayer bool   `db:"allow_commom_player" json:"allow_common_player"`
+	AllowCommonPlayer bool   `db:"allow_common_player" json:"allow_common_player"`
 	AllowSoloBatting  bool   `db:"allow_solo_batting" json:"allow_solo_batting"`
-	OversLimit        int64  `db:"over_limit" json:"overs_limit"`
+	OversLimit        int64  `db:"overs_limit" json:"overs_limit"`
 	Status            string `db:"status" json:"status"`
 	WinnerTeamID      string `db:"winner_team_id" json:"winner_team_id"`
 	ManOfMatch        string `db:"man_of_match" json:"man_of_match"`
