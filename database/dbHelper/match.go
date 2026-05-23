@@ -1,6 +1,8 @@
 package dbHelper
 
 import (
+	"database/sql"
+
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
 	"github.com/jmoiron/sqlx"
@@ -8,10 +10,11 @@ import (
 
 func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (string, error) {
 	var matchID string
-	var dbUmpireID interface{} = input.UmpireID
-	if input.UmpireID == "" {
-		dbUmpireID = nil
+	dbUmpireID := sql.NullString{
+		String: input.UmpireID,
+		Valid:  input.UmpireID != "",
 	}
+
 	query := `INSERT INTO matches (
                      team_a_id,
                      team_b_id,

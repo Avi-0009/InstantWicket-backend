@@ -36,8 +36,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		var session models.Session
 
-		query := `SELECT id, user_id FROM sessions WHERE session_token = $1 AND archived_at IS NULL ;`
-		err = database.DB.Get(&session, query, tokenString)
+		query := `SELECT id, user_id FROM user_sessions WHERE id = $1 AND archived_at IS NULL;`
+		err = database.DB.Get(&session, query, claims.SessionID)
 
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired or logged out"})
