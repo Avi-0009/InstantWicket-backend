@@ -65,8 +65,13 @@ func CreateUserSession(userID string) (string, error) {
 }
 
 func DeleteUserSession(sessionID string) error {
-
 	query := `UPDATE user_sessions SET archived_at = NOW() WHERE id = $1 AND archived_at IS NULL`
-	_, err := database.DB.Exec(query, sessionID) // modifies the database but does not return any rows
+	_, err := database.DB.Exec(query, sessionID)
+	return err
+}
+
+func DeleteAllUserSessions(userID string) error {
+	query := `DELETE FROM user_sessions SET archived_at = NOW() WHERE user_id = $1 AND archived_at IS NULL`
+	_, err := database.DB.Exec(query, userID)
 	return err
 }

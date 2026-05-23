@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Avi-0009/InstantWicket-backend/database"
+	"github.com/Avi-0009/InstantWicket-backend/models"
 	"github.com/Avi-0009/InstantWicket-backend/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -26,9 +28,19 @@ func AuthMiddleware() gin.HandlerFunc {
 		)
 
 		claims, err := utils.ValidateToken(tokenString)
-
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		var session models.Session
+
+		query := `SELECT id, user_id FROM sessions WHERE session_token = $1 AND archived_at IS NULL ;`
+		err = database.DB.Get(&session, query, tokenString)
+
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired or logged out"})
 			c.Abort()
 			return
 		}

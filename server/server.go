@@ -30,7 +30,7 @@ func NewServer() *gin.Engine {
 
 		AllowCredentials: true,
 
-		MaxAge: 12 * time.Hour,
+		MaxAge: 7 * 12 * time.Hour,
 	}))
 
 	r.Use(gin.Recovery())

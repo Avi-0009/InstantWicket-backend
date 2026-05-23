@@ -22,3 +22,8 @@ type ResetPassword struct {
 	PhoneNo  string `json:"phone_no" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`
 }
+
+type Session struct {
+	ID     string `db:"id" json:"id"`
+	UserID string `db:"user_id" json:"user_id"`
+}
