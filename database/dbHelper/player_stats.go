@@ -1,6 +1,8 @@
 package dbHelper
 
 import (
+	"fmt"
+
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
 	"github.com/jmoiron/sqlx"
@@ -23,9 +25,10 @@ func CreatePlayerStats(tx *sqlx.Tx, userID string) error {
 func AddGuest(name, phoneNo string) (string, error) {
 	var userID string
 
-	userQuery := `INSERT INTO users (name, phone_no, password) VALUES ($1, $2, 'guest_account') ON CONFLICT (phone_no) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
+	userQuery := `INSERT INTO users (name, phone_no, password) VALUES ($1, $2, 'guest_account') ON CONFLICT (phone_no) WHERE archived_at IS NULL DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
 	err := database.DB.Get(&userID, userQuery, name, phoneNo)
 	if err != nil {
+		fmt.Println("user table error", err)
 		return "", err
 	}
 
@@ -33,6 +36,9 @@ func AddGuest(name, phoneNo string) (string, error) {
 	statsQuery := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right-hand bat', 'Right-arm medium') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
 
 	err = database.DB.Get(&playerID, statsQuery, userID)
+	if err != nil {
+		fmt.Println("player table error", err)
+	}
 	return playerID, err
 }
 

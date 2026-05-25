@@ -70,6 +70,7 @@ func AddGuest(c *gin.Context) {
 	}
 	playerID, err := dbHelper.AddGuest(input.Name, input.PhoneNo)
 	if err != nil {
+		fmt.Println("error in addGuest handler", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add guest"})
 		return
 	}
