@@ -11,6 +11,7 @@ func ScoringRoutes(r *gin.Engine) {
 	scoring.GET("", handler.GetLiveScoreboardHandler)
 	protected := scoring.Group("", middleware.AuthMiddleware())
 	{
+		protected.POST("/start", handler.StartInningsHandler)
 		protected.POST("/ball", handler.RecordBallHandler)
 	}
 }

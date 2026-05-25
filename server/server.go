@@ -40,5 +40,6 @@ func NewServer() *gin.Engine {
 	PlayerStatsRoutes(r)
 	MatchRoutes(r)
 	TeamRoutes(r)
+	ScoringRoutes(r)
 	return r
 }

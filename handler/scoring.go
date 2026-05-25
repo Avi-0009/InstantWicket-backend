@@ -57,3 +57,28 @@ func GetLiveScoreboardHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, scoreboard)
 }
+
+func StartInningsHandler(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req models.StartInningsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+		return
+	}
+
+	inningsID, err := dbHelper.StartInnings(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start innings: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Innings started successfully",
+		"data":    inningsID,
+	})
+
+}

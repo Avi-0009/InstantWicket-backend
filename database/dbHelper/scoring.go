@@ -223,3 +223,38 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	return &board, nil
 }
+func StartInnings(c context.Context, req models.StartInningsRequest) (string, error) {
+	var inningsID string
+	err := database.WithTransaction(c, func(tx *sqlx.Tx) error {
+		err := tx.Get(&inningsID, `
+				INSERT INTO innings(
+				                    match_id, inning_no, batting_tean_id, bowling_team_id,
+				                    striker_id, non_striker_id, bowler_id, target_runs, status
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ongoing')
+				RETURNING id`,
+			req.MatchID, req.InningsNo, req.BattingTeamID, req.BowlingTeamID,
+			req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns,
+		)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(`INSERT INTO live_match_stats(match_id, innings_id,
+    striker_id, non_stiker_id, bowling_team_id, current_over, legal_balls, current_score, wickets, required_runs)
+	VALUES ($1, $2, $3, $4, $5, 0, 0, 0, 0, $6)
+	ON CONFLICT (match_id) DO UPDATE SET
+	                          innings_id = EXCLUDED.innings_id,
+	                          striker_id = EXCLUDED.striker_id,
+	    					  non_stiker_id = EXCLUDED.non_stiker_id,
+	                          bowling_team_id = EXCLUDED.bowling_team_id,
+	                          current_over = 0,
+	                          legal_balls = 0,
+	                          current_score = 0,
+	                          wickets = 0,
+	                          required_runs = EXCLUDED.required_runs,
+	                          last_updated = CURRENT_TIMESTAMP,
+			`,
+			req.MatchID, inningsID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
+		return err
+	})
+	return inningsID, err
+}
