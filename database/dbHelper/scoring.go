@@ -244,14 +244,14 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	ON CONFLICT (match_id) DO UPDATE SET
 	                          innings_id = EXCLUDED.innings_id,
 	                          striker_id = EXCLUDED.striker_id,
-	    					  non_stiker_id = EXCLUDED.non_stiker_id,
-	                          bowling_team_id = EXCLUDED.bowling_team_id,
+	    					  non_striker_id = EXCLUDED.non_striker_id,
+	                          bowler_id = EXCLUDED.bowler_id,
 	                          current_over = 0,
 	                          legal_balls = 0,
 	                          current_score = 0,
 	                          wickets = 0,
 	                          required_runs = EXCLUDED.required_runs,
-	                          last_updated = CURRENT_TIMESTAMP,
+	                          last_updated = CURRENT_TIMESTAMP
 			`,
 			req.MatchID, inningsID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
 		return err
@@ -261,6 +261,6 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 
 func CompleteInnings(c context.Context, inningsID string) error {
 	_, err := database.DB.ExecContext(c, `UPDATE innings
-SET status = 'completed', updated_at = CURRENT_TIMESTAMP, WHERE innings_id = $1`, inningsID)
+SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, inningsID)
 	return err
 }
