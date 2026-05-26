@@ -80,5 +80,24 @@ func StartInningsHandler(c *gin.Context) {
 		"message": "Innings started successfully",
 		"data":    inningsID,
 	})
+}
 
+func CompleteInningsHandler(c *gin.Context) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	inningsID := c.Param("innings_id")
+	if inningsID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "innings_id is required"})
+		return
+	}
+	err := dbHelper.CompleteInnings(c.Request.Context(), inningsID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete innings: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Innings completed successfully"})
 }

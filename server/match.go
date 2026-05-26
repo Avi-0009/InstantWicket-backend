@@ -11,6 +11,7 @@ func MatchRoutes(r *gin.Engine) {
 	{
 		match.GET("", handler.GetMatches)
 		match.GET("/:match_id", handler.GetMatchByID)
+		match.GET("/:match_id/players", handler.GetMatchPlayersHandler)
 	}
 	protected := match.Group("", middleware.AuthMiddleware())
 	{

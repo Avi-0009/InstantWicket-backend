@@ -70,3 +70,19 @@ func UpdateTeam(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Team updated successfully"})
 }
+
+func GetTeamPlayersHandler(c *gin.Context) {
+	teamID := c.Param("team_id")
+	if teamID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_id is required"})
+		return
+	}
+	players, err := dbHelper.GetTeamPlayers(teamID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"players": players,
+	})
+}

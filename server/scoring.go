@@ -8,10 +8,11 @@ import (
 
 func ScoringRoutes(r *gin.Engine) {
 	scoring := r.Group("/v1/scoring")
-	scoring.GET("", handler.GetLiveScoreboardHandler)
+	scoring.GET("/live/:match_id", handler.GetLiveScoreboardHandler)
 	protected := scoring.Group("", middleware.AuthMiddleware())
 	{
 		protected.POST("/start", handler.StartInningsHandler)
 		protected.POST("/ball", handler.RecordBallHandler)
+		protected.POST("/innings/:innings_id/complete", handler.CompleteInningsHandler)
 	}
 }

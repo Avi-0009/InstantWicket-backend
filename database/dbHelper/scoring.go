@@ -228,7 +228,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	err := database.WithTransaction(c, func(tx *sqlx.Tx) error {
 		err := tx.Get(&inningsID, `
 				INSERT INTO innings(
-				                    match_id, inning_no, batting_tean_id, bowling_team_id,
+				                    match_id, innings_no, batting_team_id, bowling_team_id,
 				                    striker_id, non_striker_id, bowler_id, target_runs, status
 				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ongoing')
 				RETURNING id`,
@@ -239,7 +239,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 			return err
 		}
 		_, err = tx.Exec(`INSERT INTO live_match_stats(match_id, innings_id,
-    striker_id, non_stiker_id, bowling_team_id, current_over, legal_balls, current_score, wickets, required_runs)
+    striker_id, non_striker_id, bowler_id, current_over, legal_balls, current_score, wickets, required_runs)
 	VALUES ($1, $2, $3, $4, $5, 0, 0, 0, 0, $6)
 	ON CONFLICT (match_id) DO UPDATE SET
 	                          innings_id = EXCLUDED.innings_id,
@@ -257,4 +257,10 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 		return err
 	})
 	return inningsID, err
+}
+
+func CompleteInnings(c context.Context, inningsID string) error {
+	_, err := database.DB.ExecContext(c, `UPDATE innings
+SET status = 'completed', updated_at = CURRENT_TIMESTAMP, WHERE innings_id = $1`, inningsID)
+	return err
 }

@@ -19,3 +19,11 @@ type Team struct {
 
 	UpdatedAt string `db:"updated_at" json:"updated_at"`
 }
+
+type TeamPlayer struct {
+	ID             string `json:"id" db:"id"`
+	Name           string `json:"name" db:"name"`
+	BattingStyle   string `json:"batting_style" db:"batting_style"`
+	BowlingStyle   string `json:"bowling_style" db:"bowling_style"`
+	IsCommonPlayer bool   `json:"is_common_player" db:"is_common_player"`
+}

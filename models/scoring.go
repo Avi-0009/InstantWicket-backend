@@ -12,7 +12,7 @@ type StartInningsRequest struct {
 }
 
 type RecordBallRequest struct {
-	InningsID    int     `json:"innings_id" binding:"required"`
+	InningsID    string  `json:"innings_id" binding:"required"`
 	OverNumber   int     `json:"over_number" binding:"required"`
 	BallNumber   int     `json:"ball_number"`
 	StrikerID    string  `json:"striker_id" binding:"required"`

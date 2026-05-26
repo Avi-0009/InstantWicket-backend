@@ -13,6 +13,7 @@ func TeamRoutes(r *gin.Engine) {
 	{
 		team.GET("", handler.GetTeams)
 		team.GET("/:team_id", handler.GetTeam)
+		team.GET("/:team_id/players", handler.GetTeamPlayersHandler)
 	}
 	protected := team.Group(
 		"",

@@ -54,7 +54,7 @@ func CreateMatch(c *gin.Context) {
 			UmpireID:          input.UmpireID,
 		}
 
-		matchID, err := dbHelper.CreateMatch(tx, matchInput, userID)
+		matchID, err := dbHelper.CreateMatch(tx, matchInput, input.TeamAPlayers, input.TeamBPlayers, userID)
 		if err != nil {
 			return err
 		}
@@ -94,4 +94,19 @@ func GetMatchByID(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"match": match})
+}
+
+func GetMatchPlayersHandler(c *gin.Context) {
+	matchID := c.Param("match_id")
+	if matchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "match_id is required"})
+		return
+	}
+	players, err := dbHelper.GetMatchPlayers(matchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch match player not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"players": players})
+
 }

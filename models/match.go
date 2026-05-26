@@ -12,16 +12,16 @@ type CreateMatch struct {
 }
 
 type StartLiveMatchRequest struct {
-	TeamAName         string   `json:"team_a_name"`
-	TeamBName         string   `json:"team_b_name"`
-	TeamAPlayerIDs    []string `json:"team_a_player_ids"`
-	TeamBPlayerIDs    []string `json:"team_b_player_ids"`
-	TossWinner        string   `json:"toss_winner_team_id"`
-	TossDecision      string   `json:"toss_decision"`
-	AllowCommonPlayer bool     `json:"allow_common_player"`
-	AllowSoloBatting  bool     `json:"allow_solo_batting"`
-	OversLimit        int64    `json:"overs_limit"`
-	UmpireID          string   `json:"umpire_id"`
+	TeamAName         string             `json:"team_a_name"`
+	TeamBName         string             `json:"team_b_name"`
+	TeamAPlayers      []MatchPlayerInput `json:"team_a_players"`
+	TeamBPlayers      []MatchPlayerInput `json:"team_b_players"`
+	TossWinner        string             `json:"toss_winner_team_id"`
+	TossDecision      string             `json:"toss_decision"`
+	AllowCommonPlayer bool               `json:"allow_common_player"`
+	AllowSoloBatting  bool               `json:"allow_solo_batting"`
+	OversLimit        int64              `json:"overs_limit"`
+	UmpireID          string             `json:"umpire_id"`
 }
 
 type Match struct {
@@ -43,4 +43,28 @@ type Match struct {
 	CreatedBy         string  `db:"created_by" json:"created_by"`
 	CreatedAt         string  `db:"created_at" json:"created_at"`
 	UpdatedAt         string  `db:"updated_at" json:"updated_at"`
+}
+
+// for incoming match creation
+
+type MatchPlayerInput struct {
+	ID             string `db:"id" json:"id"` // This is the player_stats ID
+	Name           string `db:"name" json:"name"`
+	PhoneNo        string `db:"phone_no" json:"phone_no"`
+	IsCommonPlayer bool   `db:"is_common_player" json:"is_common_player"`
+	IsCaptain      bool   `db:"is_captain" json:"is_captain"`
+	IsWicketKeeper bool   `db:"is_wicket_keeper" json:"is_wicket_keeper"`
+}
+
+// for outgoing player fetching
+
+type MatchPlayer struct {
+	TeamID         string `db:"team_id" json:"team_id"`
+	ID             string `db:"id" json:"id"`
+	Name           string `db:"name" json:"name"`
+	IsCommonPlayer bool   `db:"is_common_player" json:"is_common_player"`
+	IsCaptain      bool   `db:"is_captain" json:"is_captain"`
+	IsWicketKeeper bool   `db:"is_wicket_keeper" json:"is_wicket_keeper"`
+	IsRetired      bool   `db:"is_retired" json:"is_retired"`
+	ReturnedToPlay bool   `db:"returned_to_play" json:"returned_to_play"`
 }

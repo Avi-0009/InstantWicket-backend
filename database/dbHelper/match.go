@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (string, error) {
+func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.MatchPlayerInput, teamBPlayers []models.MatchPlayerInput, createdBy string) (string, error) {
 	var matchID string
 	dbUmpireID := sql.NullString{
 		String: input.UmpireID,
@@ -16,15 +16,7 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (strin
 	}
 
 	query := `INSERT INTO matches (
-                     team_a_id,
-                     team_b_id,
-                     toss_winner_team_id,
-                     toss_decision,
-                     allow_common_player,
-                     allow_solo_batting,
-                     overs_limit,
-                     umpire_id,
-                     created_by
+                     team_a_id, team_b_id, toss_winner_team_id, toss_decision, allow_common_player, allow_solo_batting, overs_limit, umpire_id, created_by
                      ) VALUES (
                                $1, $2, $3, $4, $5, $6, $7, $8, $9
                      )
@@ -34,6 +26,41 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, createdBy string) (strin
 	if err != nil {
 		return "", err
 	}
+
+	upsertPlayerToMatch := func(p models.MatchPlayerInput, teamID string) error {
+		playerID := p.ID
+
+		// If it's a new player, create them in the DB dynamically!
+		if playerID == "" {
+			var uID string
+			err := tx.Get(&uID, `INSERT INTO users (name, phone_no, password) VALUES ($1, $2, 'guest_account') ON CONFLICT (phone_no) WHERE archived_at IS NULL DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`, p.Name, p.PhoneNo)
+			if err != nil {
+				return err
+			}
+
+			err = tx.Get(&playerID, `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right-hand bat', 'Right-arm medium') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`, uID)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Insert into match_players with all the roles (Captain and all)
+		_, err := tx.Exec(`INSERT INTO match_players (match_id, team_id, player_id, is_common_player, is_captain, is_wicket_keeper) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (match_id, player_id) DO NOTHING`, matchID, teamID, playerID, p.IsCommonPlayer, p.IsCaptain, p.IsWicketKeeper)
+		return err
+	}
+
+	for _, p := range teamAPlayers {
+		if err := upsertPlayerToMatch(p, input.TeamAID); err != nil {
+			return "", err
+		}
+	}
+
+	for _, p := range teamBPlayers {
+		if err := upsertPlayerToMatch(p, input.TeamBID); err != nil {
+			return "", err
+		}
+	}
+
 	return matchID, nil
 }
 
@@ -83,4 +110,28 @@ func GetMatchByID(matchID string) (*models.Match, error) {
 		return nil, err
 	}
 	return &match, nil
+}
+
+func GetMatchPlayers(matchID string) ([]models.MatchPlayer, error) {
+	var players []models.MatchPlayer
+	query := `
+		SELECT 
+			mp.team_id, 
+			mp.player_id AS id, 
+			u.name, 
+			mp.is_common_player,
+			mp.is_captain,
+			mp.is_wicket_keeper,
+			mp.is_retired,
+			mp.returned_to_play
+		FROM match_players mp
+		JOIN player_stats ps ON mp.player_id = ps.id
+		JOIN users u ON ps.user_id = u.id
+		WHERE mp.match_id = $1
+	`
+	err := database.DB.Select(&players, query, matchID)
+	if players == nil {
+		players = []models.MatchPlayer{}
+	}
+	return players, err
 }
