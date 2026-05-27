@@ -12,11 +12,46 @@ import (
 func RecordBall(c context.Context, input models.RecordBallRequest) error {
 	return database.WithTransaction(c, func(tx *sqlx.Tx) error {
 		var inningsData struct {
-			Status  string `db:"status"`
-			MatchID string `db:"match_id"`
+			Status           string `db:"status"`
+			MatchID          string `db:"match_id"`
+			BattingTeamID    string `db:"batting_team_id"`
+			BowlingTeamID    string `db:"bowling_team_id"`
+			TotalWickets     int    `db:"total_wickets"`
+			AllowSoloBatting bool   `db:"allow_solo_batting"`
 		}
 
-		err := tx.Get(&inningsData, `SELECT status, match_id FROM innings WHERE id = $1 FOR UPDATE`, input.InningsID)
+		err := tx.Get(&inningsData, `SELECT 
+    i.status, i.match_id, i.batting_team_id, i.bowling_team_id, m.allow_solo_batting 
+	FROM innings i
+	JOIN matches m ON m.id = i.match_id
+	WHERE i.id = $1 FOR UPDATE`, input.InningsID)
+		if inningsData.Status != "ongoing" {
+			return errors.New("cannot record balls, inning is no longer ongoing")
+		}
+
+		var activePlayers int
+		err = tx.Get(&activePlayers, `SELECT COUNT(*) FROM match_players
+		WHERE match_id = $1 AND team_id = $2 AND is_retired = FALSE`,
+			inningsData.MatchID, inningsData.BattingTeamID)
+
+		if err != nil {
+			return err
+		}
+		lastPlayerRemaining := inningsData.TotalWickets >= activePlayers-1
+		if lastPlayerRemaining {
+			if !inningsData.AllowSoloBatting {
+				_, err = tx.Exec(`UPDATE innings SET status = 'completed', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, input.InningsID)
+				return err
+			}
+			if input.NonStrikerID != nil {
+				return errors.New("non striker not allowed for last batsman")
+			}
+		} else {
+			if input.NonStrikerID == nil {
+				return errors.New("non striker is required")
+			}
+		}
+
 		if err != nil {
 			return err
 		}
@@ -105,8 +140,8 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			    fours = fours + $3,
 			    sixes = sixes + $4,
 			    updated_at = CURRENT_TIMESTAMP
-			WHERE match_id = $5 AND player_id = $6`,
-			input.RunsFromBat, ballsFacedIncrement, fours, sixes, inningsData.MatchID, input.StrikerID,
+			WHERE match_id = $5 AND team_id = $6 AND player_id = $7`,
+			input.RunsFromBat, ballsFacedIncrement, fours, sixes, inningsData.MatchID, inningsData.BattingTeamID, input.StrikerID,
 		)
 		if err != nil {
 			return err
@@ -138,8 +173,8 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			    wickets_taken = wickets_taken + $3,
 			    wides = wides + $4,
 			    no_balls = no_balls + $5
-			WHERE match_id = $6 AND player_id = $7`,
-			runsConceded, legalBallIncrement, bowlerWickets, wides, noBalls, inningsData.MatchID, input.BowlerID,
+			WHERE match_id = $6 AND team_id = $7 AND player_id = $8`,
+			runsConceded, legalBallIncrement, bowlerWickets, wides, noBalls, inningsData.MatchID, inningsData.BowlingTeamID, input.BowlerID,
 		)
 		if err != nil {
 			return err
@@ -164,8 +199,8 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 				    runouts = runouts + $2,
 				    stumpings = stumpings + $3,
 				    updated_at = CURRENT_TIMESTAMP
-				WHERE match_id = $4 AND player_id = $5`,
-				catches, runouts, stumpings, inningsData.MatchID, *input.FielderID,
+				WHERE match_id = $4 AND team_id = $5 AND player_id = $6`,
+				catches, runouts, stumpings, inningsData.MatchID, inningsData.BowlingTeamID, *input.FielderID,
 			)
 			if err != nil {
 				return err
@@ -226,7 +261,16 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 func StartInnings(c context.Context, req models.StartInningsRequest) (string, error) {
 	var inningsID string
 	err := database.WithTransaction(c, func(tx *sqlx.Tx) error {
-		err := tx.Get(&inningsID, `
+		var allowSoloBatting bool
+
+		err := tx.Get(&allowSoloBatting, `SELECT allow_solo_batting FROM matches WHERE id = $1`, req.MatchID)
+		if err != nil {
+			return err
+		}
+		if !allowSoloBatting && req.NonStrikerID == nil {
+			return errors.New("non_striker_id is required")
+		}
+		err = tx.Get(&inningsID, `
 				INSERT INTO innings(
 				                    match_id, innings_no, batting_team_id, bowling_team_id,
 				                    striker_id, non_striker_id, bowler_id, target_runs, status

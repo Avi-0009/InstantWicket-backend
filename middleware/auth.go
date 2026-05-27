@@ -17,15 +17,30 @@ func AuthMiddleware() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Authorization header missing",
+			})
 			c.Abort()
 			return
 		}
 
-		tokenString := strings.TrimPrefix(
-			authHeader,
-			"Bearer ",
-		)
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid authorization format",
+			})
+			c.Abort()
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Token missing",
+			})
+			c.Abort()
+			return
+		}
 
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
@@ -36,7 +51,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		var session models.Session
 
-		query := `SELECT id, user_id FROM user_sessions WHERE id = $1 AND archived_at IS NULL;`
+		query := `SELECT id, user_id FROM user_sessions WHERE id = $1 AND archived_at IS NULL AND expires_at > NOW();`
 		err = database.DB.Get(&session, query, claims.SessionID)
 
 		if err != nil {

@@ -17,6 +17,7 @@ pgdata
 
 # Environment files
 .env
+Migrate_using_this_command.txt
 
 # IDE
 .vscode/

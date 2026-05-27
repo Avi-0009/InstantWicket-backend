@@ -2,6 +2,7 @@ package dbHelper
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
@@ -30,6 +31,10 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.Ma
 	upsertPlayerToMatch := func(p models.MatchPlayerInput, teamID string) error {
 		playerID := p.ID
 
+		if p.IsCommonPlayer && p.IsCaptain {
+			return errors.New("common player can never be captain")
+		}
+
 		// If it's a new player, create them in the DB dynamically!
 		if playerID == "" {
 			var uID string
@@ -45,7 +50,13 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.Ma
 		}
 
 		// Insert into match_players with all the roles (Captain and all)
-		_, err := tx.Exec(`INSERT INTO match_players (match_id, team_id, player_id, is_common_player, is_captain, is_wicket_keeper) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (match_id, player_id) DO NOTHING`, matchID, teamID, playerID, p.IsCommonPlayer, p.IsCaptain, p.IsWicketKeeper)
+		_, err := tx.Exec(`INSERT INTO match_players (match_id, team_id, player_id, is_common_player, is_captain, is_wicket_keeper) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (match_id, team_id, player_id) DO NOTHING`, matchID, teamID, playerID, p.IsCommonPlayer, p.IsCaptain, p.IsWicketKeeper)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`INSERT INTO player_match_stats (match_id, team_id, player_id) VALUES ($1, $2, $3) ON CONFLICT (match_id, team_id, player_id) DO NOTHING`, matchID, teamID, playerID)
 		return err
 	}
 

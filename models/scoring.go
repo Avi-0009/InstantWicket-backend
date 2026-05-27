@@ -1,14 +1,14 @@
 package models
 
 type StartInningsRequest struct {
-	MatchID       string `json:"match_id" binding:"required"`
-	BattingTeamID string `json:"batting_team_id" binding:"required"`
-	BowlingTeamID string `json:"bowling_team_id" binding:"required"`
-	StrikerID     string `json:"striker_id" binding:"required"`
-	NonStrikerID  string `json:"non_striker_id" binding:"required"`
-	BowlerID      string `json:"bowler_id" binding:"required"`
-	InningsNo     int    `json:"innings_no" binding:"required"`
-	TargetRuns    *int   `json:"target_runs"`
+	MatchID       string  `json:"match_id" binding:"required"`
+	BattingTeamID string  `json:"batting_team_id" binding:"required"`
+	BowlingTeamID string  `json:"bowling_team_id" binding:"required"`
+	StrikerID     string  `json:"striker_id" binding:"required"`
+	NonStrikerID  *string `json:"non_striker_id"`
+	BowlerID      string  `json:"bowler_id" binding:"required"`
+	InningsNo     int     `json:"innings_no" binding:"required"`
+	TargetRuns    *int    `json:"target_runs"`
 }
 
 type RecordBallRequest struct {
@@ -16,7 +16,7 @@ type RecordBallRequest struct {
 	OverNumber   int     `json:"over_number" binding:"required"`
 	BallNumber   int     `json:"ball_number"`
 	StrikerID    string  `json:"striker_id" binding:"required"`
-	NonStrikerID string  `json:"non_striker_id" binding:"required"`
+	NonStrikerID *string `json:"non_striker_id"`
 	BowlerID     string  `json:"bowler_id" binding:"required"`
 	IsLegalBall  bool    `json:"is_legal_ball"`
 	RunsFromBat  int     `json:"runs_from_bat"`

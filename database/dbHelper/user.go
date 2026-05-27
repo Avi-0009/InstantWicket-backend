@@ -53,7 +53,7 @@ func CreateUserSession(userID string) (string, error) {
 
 	var sessionID string
 
-	query := `INSERT INTO user_sessions (user_id)VALUES ($1)RETURNING id`
+	query := `INSERT INTO user_sessions (user_id, expires_at) VALUES ($1, NOW() + INTERVAL '7 days')RETURNING id`
 
 	err := database.DB.Get(
 		&sessionID,
@@ -71,7 +71,7 @@ func DeleteUserSession(sessionID string) error {
 }
 
 func DeleteAllUserSessions(userID string) error {
-	query := `DELETE FROM user_sessions SET archived_at = NOW() WHERE user_id = $1 AND archived_at IS NULL`
+	query := `UPDATE user_sessions SET archived_at = NOW() WHERE user_id = $1 AND archived_at IS NULL`
 	_, err := database.DB.Exec(query, userID)
 	return err
 }

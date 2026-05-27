@@ -1,13 +1,14 @@
 package utils
 
 import (
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var JwtSecret = []byte("instantwicket-secret")
+var JwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 type JwtClaims struct {
 	UserID    string `json:"user_id"`
@@ -20,7 +21,7 @@ func GenerateToken(UserID, SessionID string) (string, error) {
 		UserID:    UserID,
 		SessionID: SessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 		},
 	}
 
