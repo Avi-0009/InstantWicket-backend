@@ -43,4 +43,6 @@ type LiveScoreboardResponse struct {
 	BowlerName     string `json:"bowler_name" db:"bowler_name"`
 	BowlerRuns     int    `json:"bowler_runs" db:"bowler_runs"`
 	BowlerWickets  int    `json:"bowler_wickets" db:"bowler_wickets"`
+	BattingTeamID  string `json:"batting_team_id" db:"batting_team_id"`
+	BowlingTeamID  string `json:"bowling_team_id" db:"bowling_team_id"`
 }

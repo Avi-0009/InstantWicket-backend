@@ -21,7 +21,7 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 		}
 
 		err := tx.Get(&inningsData, `SELECT 
-    i.status, i.match_id, i.batting_team_id, i.bowling_team_id, m.allow_solo_batting 
+    i.status, i.match_id, i.batting_team_id, i.bowling_team_id, i.total_wickets, m.allow_solo_batting 
 	FROM innings i
 	JOIN matches m ON m.id = i.match_id
 	WHERE i.id = $1 FOR UPDATE`, input.InningsID)
@@ -107,13 +107,16 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			SET current_score = current_score + $1,
 			    wickets = wickets + $2,
 			    legal_balls = legal_balls + $3,
+			    current_over = (legal_balls + $3) / 6,
 			    striker_id = $4,
 			    non_striker_id = $5,
 			    bowler_id = $6,
+			    batting_team_id = $7,
+			    bowling_team_id = $8,
 			    last_updated = CURRENT_TIMESTAMP
-			WHERE match_id = $7`,
+			WHERE match_id = $9`,
 			totalRunsOnBall, wicketIncrement, legalBallIncrement,
-			input.StrikerID, input.NonStrikerID, input.BowlerID, inningsData.MatchID,
+			input.StrikerID, input.NonStrikerID, input.BowlerID, inningsData.BattingTeamID, inningsData.BowlingTeamID, inningsData.MatchID,
 		)
 		if err != nil {
 			return err
@@ -218,7 +221,9 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	query := `
 		SELECT 
-			lms.match_id, 
+			lms.match_id,
+			lms.batting_team_id,
+			lms.bowling_team_id,
 			lms.current_score, 
 			lms.wickets, 
 			lms.legal_balls,
@@ -239,14 +244,14 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 		FROM live_match_stats lms
 		LEFT JOIN player_stats sps ON lms.striker_id = sps.id
 		LEFT JOIN users su ON sps.user_id = su.id
-		LEFT JOIN player_match_stats spms ON lms.striker_id = spms.player_id AND lms.match_id = spms.match_id
+		LEFT JOIN player_match_stats spms ON lms.striker_id = spms.player_id AND lms.match_id = spms.match_id AND lms.batting_team_id = spms.team_id
 
 		LEFT JOIN player_stats nsps ON lms.non_striker_id = nsps.id
 		LEFT JOIN users nsu ON nsps.user_id = nsu.id
 
 		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
 		LEFT JOIN users bu ON bps.user_id = bu.id
-		LEFT JOIN player_match_stats bpms ON lms.bowler_id = bpms.player_id AND lms.match_id = bpms.match_id
+		LEFT JOIN player_match_stats bpms ON lms.bowler_id = bpms.player_id AND lms.match_id = bpms.match_id AND lms.bowling_team_id = bpms.team_id
 
 		WHERE lms.match_id = $1
 	`
@@ -282,11 +287,13 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec(`INSERT INTO live_match_stats(match_id, innings_id,
+		_, err = tx.Exec(`INSERT INTO live_match_stats(match_id, innings_id, batting_team_id, bowling_team_id,
     striker_id, non_striker_id, bowler_id, current_over, legal_balls, current_score, wickets, required_runs)
-	VALUES ($1, $2, $3, $4, $5, 0, 0, 0, 0, $6)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, 0, $8)
 	ON CONFLICT (match_id) DO UPDATE SET
 	                          innings_id = EXCLUDED.innings_id,
+	batting_team_id = EXCLUDED.batting_team_id,
+	bowling_team_id = EXCLUDED.bowling_team_id,
 	                          striker_id = EXCLUDED.striker_id,
 	    					  non_striker_id = EXCLUDED.non_striker_id,
 	                          bowler_id = EXCLUDED.bowler_id,
@@ -297,7 +304,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	                          required_runs = EXCLUDED.required_runs,
 	                          last_updated = CURRENT_TIMESTAMP
 			`,
-			req.MatchID, inningsID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
+			req.MatchID, inningsID, req.BattingTeamID, req.BattingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
 		return err
 	})
 	return inningsID, err
