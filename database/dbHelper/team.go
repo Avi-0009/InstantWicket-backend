@@ -45,9 +45,12 @@ func UpdateTeam(teamID, name string) error {
 
 func GetTeamPlayers(teamID string) ([]models.TeamPlayer, error) {
 	var players []models.TeamPlayer
-	query := `SELECT u.id, u.name, COALESCE(tp.batting_style, 'Right Hand'), COALESCE(tp.bowling_style, 'Right Arm Fast'),COALESCE(tp.is_common_player, false) FROM users u
-JOIN team_players tp ON u.id = tp.user_id
-WHERE tp.team_id = $1`
+	query := `SELECT u.id, u.name, COALESCE(ps.batting_style, 'Right Hand') AS batting_style, COALESCE(ps.bowling_style, 'Right Arm Fast') AS bowling_style,
+       COALESCE(mp.is_common_player, false) AS is_common_player 
+FROM match_players mp
+    JOIN player_stats ps ON ps.id = mp.player_id
+JOIN users u ON u.id = ps.user_id
+WHERE mp.team_id = $1`
 	err := database.DB.Select(&players, query, teamID)
 	if err != nil {
 		return nil, err
