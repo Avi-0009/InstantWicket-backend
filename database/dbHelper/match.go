@@ -127,14 +127,7 @@ func GetMatchPlayers(matchID string) ([]models.MatchPlayer, error) {
 	var players []models.MatchPlayer
 	query := `
 		SELECT 
-			mp.team_id, 
-			mp.player_id AS id, 
-			u.name, 
-			mp.is_common_player,
-			mp.is_captain,
-			mp.is_wicket_keeper,
-			mp.is_retired,
-			mp.returned_to_play
+			mp.team_id, mp.player_id AS id, u.name, mp.is_common_player, mp.is_captain, mp.is_wicket_keeper, mp.is_retired, mp.returned_to_play
 		FROM match_players mp
 		JOIN player_stats ps ON mp.player_id = ps.id
 		JOIN users u ON ps.user_id = u.id

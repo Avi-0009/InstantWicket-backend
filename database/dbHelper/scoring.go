@@ -221,39 +221,23 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	query := `
 		SELECT 
-			lms.match_id,
-			lms.innings_id,
-			lms.batting_team_id,
-			lms.bowling_team_id,
-			lms.current_score, 
-			lms.wickets, 
-			lms.legal_balls,
-			
+			lms.match_id, lms.innings_id, lms.batting_team_id, lms.bowling_team_id, lms.current_score, lms.wickets, lms.legal_balls, 
 			lms.striker_id,
-			COALESCE(su.name, '') AS striker_name,
-			COALESCE(spms.runs_scored, 0) AS striker_runs,
-			COALESCE(spms.balls_played, 0) AS striker_balls,
-
+			COALESCE(su.name, '') AS striker_name, COALESCE(spms.runs_scored, 0) AS striker_runs, COALESCE(spms.balls_played, 0) AS striker_balls,
 			lms.non_striker_id,
-			COALESCE(nsu.name, '') AS non_striker_name,
-
+			COALESCE(nsu.name, '') AS non_striker_name, COALESCE(nspms.runs_scored, 0) AS non_striker_runs, COALESCE(nspms.balls_played, 0) AS non_striker_balls,
 			lms.bowler_id,
-			COALESCE(bu.name, '') AS bowler_name,
-			COALESCE(bpms.runs_conceded, 0) AS bowler_runs,
-			COALESCE(bpms.wickets_taken, 0) AS bowler_wickets
-
+			COALESCE(bu.name, '') AS bowler_name, COALESCE(bpms.runs_conceded, 0) AS bowler_runs, COALESCE(bpms.wickets_taken, 0) AS bowler_wickets
 		FROM live_match_stats lms
 		LEFT JOIN player_stats sps ON lms.striker_id = sps.id
 		LEFT JOIN users su ON sps.user_id = su.id
 		LEFT JOIN player_match_stats spms ON lms.striker_id = spms.player_id AND lms.match_id = spms.match_id AND lms.batting_team_id = spms.team_id
-
 		LEFT JOIN player_stats nsps ON lms.non_striker_id = nsps.id
 		LEFT JOIN users nsu ON nsps.user_id = nsu.id
-
+		LEFT JOIN player_match_stats nspms ON lms.non_striker_id = nspms.player_id AND lms.match_id = nspms.match_id AND lms.batting_team_id = nspms.team_id
 		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
 		LEFT JOIN users bu ON bps.user_id = bu.id
 		LEFT JOIN player_match_stats bpms ON lms.bowler_id = bpms.player_id AND lms.match_id = bpms.match_id AND lms.bowling_team_id = bpms.team_id
-
 		WHERE lms.match_id = $1
 	`
 
@@ -264,6 +248,7 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	return &board, nil
 }
+
 func StartInnings(c context.Context, req models.StartInningsRequest) (string, error) {
 	var inningsID string
 	err := database.WithTransaction(c, func(tx *sqlx.Tx) error {
@@ -278,12 +263,10 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 		}
 		err = tx.Get(&inningsID, `
 				INSERT INTO innings(
-				                    match_id, innings_no, batting_team_id, bowling_team_id,
-				                    striker_id, non_striker_id, bowler_id, target_runs, status
+				                    match_id, innings_no, batting_team_id, bowling_team_id, striker_id, non_striker_id, bowler_id, target_runs, status
 				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ongoing')
 				RETURNING id`,
-			req.MatchID, req.InningsNo, req.BattingTeamID, req.BowlingTeamID,
-			req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns,
+			req.MatchID, req.InningsNo, req.BattingTeamID, req.BowlingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns,
 		)
 		if err != nil {
 			return err
