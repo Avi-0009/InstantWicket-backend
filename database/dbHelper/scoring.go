@@ -222,6 +222,7 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 	query := `
 		SELECT 
 			lms.match_id,
+			lms.innings_id,
 			lms.batting_team_id,
 			lms.bowling_team_id,
 			lms.current_score, 

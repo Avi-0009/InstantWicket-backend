@@ -77,8 +77,8 @@ func StartInningsHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Innings started successfully",
-		"data":    inningsID,
+		"message":  "Innings started successfully",
+		"inningID": inningsID,
 	})
 }
 

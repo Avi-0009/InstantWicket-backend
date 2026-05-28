@@ -13,7 +13,7 @@ type StartInningsRequest struct {
 
 type RecordBallRequest struct {
 	InningsID    string  `json:"innings_id" binding:"required"`
-	OverNumber   int     `json:"over_number" binding:"required"`
+	OverNumber   int     `json:"over_number"`
 	BallNumber   int     `json:"ball_number"`
 	StrikerID    string  `json:"striker_id" binding:"required"`
 	NonStrikerID *string `json:"non_striker_id"`
@@ -30,6 +30,7 @@ type RecordBallRequest struct {
 
 type LiveScoreboardResponse struct {
 	MatchID        string `json:"match_id" db:"match_id"`
+	InningsID      string `json:"innings_id" db:"innings_id"`
 	CurrentScore   int    `json:"current_score" db:"current_score"`
 	Wickets        int    `json:"wickets" db:"wickets"`
 	LegalBalls     int    `json:"legal_balls" db:"legal_balls"`
