@@ -221,7 +221,7 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	query := `
 		SELECT 
-			lms.match_id, lms.innings_id, lms.batting_team_id, lms.bowling_team_id, lms.current_score, lms.wickets, lms.legal_balls, 
+			lms.match_id, lms.innings_id, lms.batting_team_id, lms.bowling_team_id, lms.current_score, lms.wickets, lms.legal_balls, lms.required_runs,
 			lms.striker_id,
 			COALESCE(su.name, '') AS striker_name, COALESCE(spms.runs_scored, 0) AS striker_runs, COALESCE(spms.balls_played, 0) AS striker_balls,
 			lms.non_striker_id,
@@ -288,7 +288,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	                          required_runs = EXCLUDED.required_runs,
 	                          last_updated = CURRENT_TIMESTAMP
 			`,
-			req.MatchID, inningsID, req.BattingTeamID, req.BattingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
+			req.MatchID, inningsID, req.BattingTeamID, req.BowlingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
 		return err
 	})
 	return inningsID, err

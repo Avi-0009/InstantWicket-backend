@@ -29,21 +29,24 @@ type RecordBallRequest struct {
 }
 
 type LiveScoreboardResponse struct {
-	MatchID        string `json:"match_id" db:"match_id"`
-	InningsID      string `json:"innings_id" db:"innings_id"`
-	CurrentScore   int    `json:"current_score" db:"current_score"`
-	Wickets        int    `json:"wickets" db:"wickets"`
-	LegalBalls     int    `json:"legal_balls" db:"legal_balls"`
-	StrikerID      string `json:"striker_id" db:"striker_id"`
-	StrikerName    string `json:"striker_name" db:"striker_name"`
-	StrikerRuns    int    `json:"striker_runs" db:"striker_runs"`
-	StrikerBalls   int    `json:"striker_balls" db:"striker_balls"`
-	NonStrikerID   string `json:"non_striker_id" db:"non_striker_id"`
-	NonStrikerName string `json:"non_striker_name" db:"non_striker_name"`
-	BowlerID       string `json:"bowler_id" db:"bowler_id"`
-	BowlerName     string `json:"bowler_name" db:"bowler_name"`
-	BowlerRuns     int    `json:"bowler_runs" db:"bowler_runs"`
-	BowlerWickets  int    `json:"bowler_wickets" db:"bowler_wickets"`
-	BattingTeamID  string `json:"batting_team_id" db:"batting_team_id"`
-	BowlingTeamID  string `json:"bowling_team_id" db:"bowling_team_id"`
+	MatchID         string  `json:"match_id" db:"match_id"`
+	InningsID       string  `json:"innings_id" db:"innings_id"`
+	BattingTeamID   string  `json:"batting_team_id" db:"batting_team_id"`
+	BowlingTeamID   string  `json:"bowling_team_id" db:"bowling_team_id"`
+	CurrentScore    int     `json:"current_score" db:"current_score"`
+	Wickets         int     `json:"wickets" db:"wickets"`
+	LegalBalls      int     `json:"legal_balls" db:"legal_balls"`
+	RequiredRuns    *int    `json:"target_runs" db:"required_runs"`
+	StrikerID       *string `json:"striker_id" db:"striker_id"`
+	StrikerName     string  `json:"striker_name" db:"striker_name"`
+	StrikerRuns     int     `json:"striker_runs" db:"striker_runs"`
+	StrikerBalls    int     `json:"striker_balls" db:"striker_balls"`
+	NonStrikerID    *string `json:"non_striker_id" db:"non_striker_id"`
+	NonStrikerName  string  `json:"non_striker_name" db:"non_striker_name"`
+	NonStrikerRuns  int     `json:"non_striker_runs" db:"non_striker_runs"`
+	NonStrikerBalls int     `json:"non_striker_balls" db:"non_striker_balls"`
+	BowlerID        *string `json:"bowler_id" db:"bowler_id"`
+	BowlerName      string  `json:"bowler_name" db:"bowler_name"`
+	BowlerRuns      int     `json:"bowler_runs" db:"bowler_runs"`
+	BowlerWickets   int     `json:"bowler_wickets" db:"bowler_wickets"`
 }
