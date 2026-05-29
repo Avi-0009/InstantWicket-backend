@@ -322,3 +322,9 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 	}
 	return scorecard, err
 }
+
+func CompleteMatch(matchID string) error {
+	query := `UPDATE matches SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	_, err := database.DB.Exec(query, matchID)
+	return err
+}

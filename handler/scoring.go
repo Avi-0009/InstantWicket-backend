@@ -115,3 +115,19 @@ func GetScoreCardsHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"scorecard": scorecard})
 }
+
+func CompleteMatchHandler(c *gin.Context) {
+	matchID := c.Param("match_id")
+	if matchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "match_id is required"})
+		return
+	}
+
+	err := dbHelper.CompleteMatch(matchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to complete match"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Match completed successfully"})
+}
