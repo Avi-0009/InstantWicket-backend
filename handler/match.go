@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/database/dbHelper"
@@ -94,13 +95,37 @@ func CreateMatch(c *gin.Context) {
 		"match":   match,
 	})
 }
+
 func GetMatches(c *gin.Context) {
-	matches, err := dbHelper.GetMatches()
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 50 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	matches, err := dbHelper.GetMatches(limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"matches": matches})
+
+	if matches == nil {
+		matches = []models.Match{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"matches": matches,
+		"page":    page,
+		"limit":   limit,
+	})
 }
 
 func GetMatchByID(c *gin.Context) {

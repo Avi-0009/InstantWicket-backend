@@ -75,34 +75,38 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.Ma
 	return matchID, nil
 }
 
-func GetMatches() ([]models.Match, error) {
+func GetMatches(limit, offset int) ([]models.Match, error) {
 	var matches []models.Match
 
 	query := `SELECT 
-			m.id, 
-			m.team_a_id, 
+			m.id, m.team_a_id, 
 			tA.name AS team_a_name, 
 			m.team_b_id, 
 			tB.name AS team_b_name, 
-			m.toss_winner_team_id, 
-			m.toss_decision, 
-			m.allow_common_player, 
-			m.allow_solo_batting, 
-			m.overs_limit, 
-			m.status, 
-			m.winner_team_id, 
-			m.man_of_match, 
-			m.worst_player, 
-			m.umpire_id,
-			m.created_by,
-			m.created_at,
-			m.updated_at
+			m.toss_winner_team_id, m.toss_decision, m.allow_common_player, m.allow_solo_batting, 
+			m.overs_limit, m.status, m.winner_team_id, m.man_of_match, m.worst_player, 
+			m.umpire_id, m.created_by, m.created_at, m.updated_at,
+			lms.current_score AS live_score,
+			lms.wickets AS live_wickets,
+			lms.legal_balls AS live_legal_balls,
+			lms.required_runs AS target_runs,
+			su.name AS striker_name,
+			nsu.name AS non_striker_name,
+			bu.name AS bowler_name
 		FROM matches m
 		JOIN teams tA ON m.team_a_id = tA.id
 		JOIN teams tB ON m.team_b_id = tB.id
-		ORDER BY m.created_at DESC`
+		LEFT JOIN live_match_stats lms ON m.id = lms.match_id
+		LEFT JOIN player_stats sps ON lms.striker_id = sps.id
+		LEFT JOIN users su ON sps.user_id = su.id
+		LEFT JOIN player_stats nsps ON lms.non_striker_id = nsps.id
+		LEFT JOIN users nsu ON nsps.user_id = nsu.id
+		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
+		LEFT JOIN users bu ON bps.user_id = bu.id
+		ORDER BY m.created_at DESC
+		LIMIT $1 OFFSET $2`
 
-	err := database.DB.Select(&matches, query)
+	err := database.DB.Select(&matches, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -111,11 +115,32 @@ func GetMatches() ([]models.Match, error) {
 
 func GetMatchByID(matchID string) (*models.Match, error) {
 	var match models.Match
-	query := `SELECT m.id, m.team_a_id, tA.name AS team_a_name, m.team_b_id, tB.name AS team_b_name, m.toss_winner_team_id, m.toss_decision, m.allow_common_player, m.allow_solo_batting, m.overs_limit, m.status, m.winner_team_id, m.man_of_match, m.worst_player, m.umpire_id, m.created_by, m.created_at, m.updated_at
-			FROM matches m
-			JOIN teams tA ON m.team_a_id = tA.id
-			JOIN teams tB ON m.team_b_id = tB.id
-			WHERE m.id = $1`
+	query := `SELECT 
+			m.id, m.team_a_id, 
+			tA.name AS team_a_name, 
+			m.team_b_id, 
+			tB.name AS team_b_name, 
+			m.toss_winner_team_id, m.toss_decision, m.allow_common_player, m.allow_solo_batting, 
+			m.overs_limit, m.status, m.winner_team_id, m.man_of_match, m.worst_player, 
+			m.umpire_id, m.created_by, m.created_at, m.updated_at,
+			lms.current_score AS live_score,
+			lms.wickets AS live_wickets,
+			lms.legal_balls AS live_legal_balls,
+			lms.required_runs AS target_runs,
+			su.name AS striker_name,
+			nsu.name AS non_striker_name,
+			bu.name AS bowler_name
+		FROM matches m
+		JOIN teams tA ON m.team_a_id = tA.id
+		JOIN teams tB ON m.team_b_id = tB.id
+		LEFT JOIN live_match_stats lms ON m.id = lms.match_id
+		LEFT JOIN player_stats sps ON lms.striker_id = sps.id
+		LEFT JOIN users su ON sps.user_id = su.id
+		LEFT JOIN player_stats nsps ON lms.non_striker_id = nsps.id
+		LEFT JOIN users nsu ON nsps.user_id = nsu.id
+		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
+		LEFT JOIN users bu ON bps.user_id = bu.id
+		WHERE m.id = $1`
 	err := database.DB.Get(&match, query, matchID)
 	if err != nil {
 		return nil, err
