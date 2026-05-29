@@ -123,7 +123,7 @@ func CompleteMatchHandler(c *gin.Context) {
 		return
 	}
 
-	err := dbHelper.CompleteMatch(matchID)
+	err := dbHelper.CompleteMatch(c.Request.Context(), matchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to complete match"})
 		return

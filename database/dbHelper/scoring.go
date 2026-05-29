@@ -113,6 +113,8 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			    bowler_id = $6,
 			    batting_team_id = $7,
 			    bowling_team_id = $8,
+			    partnership_runs = CASE WHEN $2 > 0 THEN 0 ELSE partnership_runs + $1 END,
+			    partnership_balls = CASE WHEN $2 > 0 THEN 0 ELSE partnership_balls + $3 END,
 			    last_updated = CURRENT_TIMESTAMP
 			WHERE match_id = $9`,
 			totalRunsOnBall, wicketIncrement, legalBallIncrement,
@@ -183,6 +185,18 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			return err
 		}
 
+		if input.IsWicket && input.OutPlayerID != nil {
+			_, err = tx.Exec(`
+		UPDATE player_match_stats 
+		SET is_not_out = false, updated_at = CURRENT_TIMESTAMP
+		WHERE match_id = $1 AND player_id = $2`,
+				inningsData.MatchID, *input.OutPlayerID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
 		// updaing fielders stats here
 		if input.IsWicket && input.FielderID != nil {
 			catches, runouts, stumpings := 0, 0, 0
@@ -221,7 +235,7 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	query := `
 		SELECT 
-			lms.match_id, lms.innings_id, lms.batting_team_id, lms.bowling_team_id, lms.current_score, lms.wickets, lms.legal_balls, lms.required_runs,
+			lms.match_id, lms.innings_id, lms.batting_team_id, lms.bowling_team_id, lms.current_score, lms.wickets, lms.legal_balls, lms.required_runs, lms.partnership_runs, lms.partnership_balls,
 			lms.striker_id,
 			COALESCE(su.name, '') AS striker_name, COALESCE(spms.runs_scored, 0) AS striker_runs, COALESCE(spms.balls_played, 0) AS striker_balls,
 			lms.non_striker_id,
@@ -304,13 +318,24 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 	var scorecard []models.PlayerScorecard
 	query := `
 		SELECT 
-			pms.team_id, pms.player_id, COALESCE(u.name, 'Unknown') AS player_name,
+			pms.team_id, pms.player_id, COALESCE(u.name, 'Unknown') AS player_name,			
+			-- batting
 			COALESCE(pms.runs_scored, 0) AS runs_scored,
 			COALESCE(pms.balls_played, 0) AS balls_played,
-			0 AS fours, 0 AS sixes, false AS is_out, 
+			COALESCE(pms.fours, 0) AS fours, 
+			COALESCE(pms.sixes, 0) AS sixes, 
+			pms.is_not_out,
+			-- balling
 			COALESCE(pms.runs_conceded, 0) AS runs_conceded,
 			COALESCE(pms.wickets_taken, 0) AS wickets_taken,
-			0.0 AS overs_bowled, 0 AS maidens
+			COALESCE(pms.balls_bowled, 0) AS balls_bowled,
+			COALESCE(pms.maiden_overs, 0) AS maidens,
+			COALESCE(pms.wides, 0) AS wides,
+			COALESCE(pms.no_balls, 0) AS no_balls,			
+			-- fielding
+			COALESCE(pms.catches, 0) AS catches,
+			COALESCE(pms.runouts, 0) AS runouts,
+			COALESCE(pms.stumpings, 0) AS stumpings
 		FROM player_match_stats pms
 		JOIN player_stats ps ON pms.player_id = ps.id
 		JOIN users u ON ps.user_id = u.id
@@ -323,8 +348,56 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 	return scorecard, err
 }
 
-func CompleteMatch(matchID string) error {
-	query := `UPDATE matches SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`
-	_, err := database.DB.Exec(query, matchID)
-	return err
+func CompleteMatch(c context.Context, matchID string) error {
+	return database.WithTransaction(c, func(tx *sqlx.Tx) error {
+		// set match to completed
+		_, err := tx.Exec(`UPDATE matches SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, matchID)
+		if err != nil {
+			return err
+		}
+
+		// feed all matchstats data to careerstats
+		_, err = tx.Exec(`
+			UPDATE player_stats ps
+			SET 
+				career_matches = ps.career_matches + 1,				
+				-- bat
+				career_innings_batted = ps.career_innings_batted + CASE WHEN pms.balls_played > 0 OR pms.runs_scored > 0 THEN 1 ELSE 0 END,
+				career_runs = ps.career_runs + pms.runs_scored,
+				career_balls_faced = ps.career_balls_faced + pms.balls_played,
+				career_fours = ps.career_fours + pms.fours,
+				career_sixes = ps.career_sixes + pms.sixes,				
+				-- scoreMilestone
+				career_thirties = ps.career_thirties + CASE WHEN pms.runs_scored >= 30 AND pms.runs_scored < 50 THEN 1 ELSE 0 END,
+				career_fifties = ps.career_fifties + CASE WHEN pms.runs_scored >= 50 AND pms.runs_scored < 100 THEN 1 ELSE 0 END,
+				career_hundreds = ps.career_hundreds + CASE WHEN pms.runs_scored >= 100 THEN 1 ELSE 0 END,				
+				-- ducks & notOut
+				career_not_outs = ps.career_not_outs + CASE WHEN pms.is_not_out = true THEN 1 ELSE 0 END,
+				career_ducks = ps.career_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_not_out = false AND pms.balls_played > 0 THEN 1 ELSE 0 END,
+				career_golden_ducks = ps.career_golden_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_not_out = false AND pms.balls_played = 1 THEN 1 ELSE 0 END,				
+				-- highscore
+				career_highest_score = GREATEST(ps.career_highest_score, pms.runs_scored),
+				-- ball
+				career_innings_bowled = ps.career_innings_bowled + CASE WHEN pms.balls_bowled > 0 THEN 1 ELSE 0 END,
+				career_wickets = ps.career_wickets + pms.wickets_taken,
+				career_runs_conceded = ps.career_runs_conceded + pms.runs_conceded,
+				career_balls_bowled = ps.career_balls_bowled + pms.balls_bowled,
+				career_maiden_overs = ps.career_maiden_overs + pms.maiden_overs,
+				career_wides = ps.career_wides + pms.wides,
+				career_no_balls = ps.career_no_balls + pms.no_balls,
+				career_best_bowling_runs = CASE 
+					WHEN pms.wickets_taken > ps.career_best_bowling_wickets THEN pms.runs_conceded
+					WHEN pms.wickets_taken = ps.career_best_bowling_wickets THEN LEAST(ps.career_best_bowling_runs, pms.runs_conceded)
+					ELSE ps.career_best_bowling_runs 
+				END,
+				career_best_bowling_wickets = GREATEST(ps.career_best_bowling_wickets, pms.wickets_taken),
+				-- fielding
+				career_catches = ps.career_catches + pms.catches,
+				career_runouts = ps.career_runouts + pms.runouts,
+				career_stumpings = ps.career_stumpings + pms.stumpings
+			FROM player_match_stats pms
+			WHERE ps.id = pms.player_id AND pms.match_id = $1;
+		`, matchID)
+		return err
+	})
 }
