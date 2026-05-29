@@ -299,3 +299,26 @@ func CompleteInnings(c context.Context, inningsID string) error {
 SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, inningsID)
 	return err
 }
+
+func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
+	var scorecard []models.PlayerScorecard
+	query := `
+		SELECT 
+			pms.team_id, pms.player_id, COALESCE(u.name, 'Unknown') AS player_name,
+			COALESCE(pms.runs_scored, 0) AS runs_scored,
+			COALESCE(pms.balls_played, 0) AS balls_played,
+			0 AS fours, 0 AS sixes, false AS is_out, 
+			COALESCE(pms.runs_conceded, 0) AS runs_conceded,
+			COALESCE(pms.wickets_taken, 0) AS wickets_taken,
+			0.0 AS overs_bowled, 0 AS maidens
+		FROM player_match_stats pms
+		JOIN player_stats ps ON pms.player_id = ps.id
+		JOIN users u ON ps.user_id = u.id
+		WHERE pms.match_id = $1
+	`
+	err := database.DB.Select(&scorecard, query, matchID)
+	if scorecard == nil {
+		scorecard = []models.PlayerScorecard{}
+	}
+	return scorecard, err
+}

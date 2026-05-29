@@ -101,3 +101,17 @@ func CompleteInningsHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Innings completed successfully"})
 }
+
+func GetScoreCardsHandler(c *gin.Context) {
+	matchID := c.Param("match_id")
+	if matchID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "match_id is required"})
+		return
+	}
+	scorecard, err := dbHelper.GetMatchScorecard(matchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch scorecard: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"scorecard": scorecard})
+}

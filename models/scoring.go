@@ -50,3 +50,18 @@ type LiveScoreboardResponse struct {
 	BowlerRuns      int     `json:"bowler_runs" db:"bowler_runs"`
 	BowlerWickets   int     `json:"bowler_wickets" db:"bowler_wickets"`
 }
+
+type PlayerScorecard struct {
+	TeamID       string  `json:"team_id" db:"team_id"`
+	PlayerID     string  `json:"player_id" db:"player_id"`
+	PlayerName   string  `json:"player_name" db:"player_name"`
+	RunsScored   int     `json:"runs_scored" db:"runs_scored"`
+	BallsPlayed  int     `json:"balls_played" db:"balls_played"`
+	Fours        int     `json:"fours" db:"fours"`
+	Sixes        int     `json:"sixes" db:"sixes"`
+	IsOut        bool    `json:"is_out" db:"is_out"`
+	RunsConceded int     `json:"runs_conceded" db:"runs_conceded"`
+	WicketsTaken int     `json:"wickets_taken" db:"wickets_taken"`
+	OversBowled  float64 `json:"overs_bowled" db:"overs_bowled"`
+	Maidens      int     `json:"maidens" db:"maidens"`
+}
