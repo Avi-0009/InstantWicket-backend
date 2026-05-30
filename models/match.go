@@ -43,6 +43,8 @@ type Match struct {
 	WorstPlayer       *string       `db:"worst_player" json:"worst_player"`
 	UmpireID          *string       `db:"umpire_id" json:"umpire_id"`
 	CreatedBy         string        `db:"created_by" json:"created_by"`
+	UmpireName        *string       `db:"umpire_name" json:"umpire_name"`
+	CreatorName       *string       `db:"creator_name" json:"creator_name"`
 	CreatedAt         *string       `db:"created_at" json:"created_at"`
 	UpdatedAt         *string       `db:"updated_at" json:"updated_at"`
 	LiveScore         *int          `db:"live_score" json:"score"`
@@ -52,6 +54,12 @@ type Match struct {
 	StrikerName       *string       `db:"striker_name" json:"striker_name"`
 	NonStrikerName    *string       `db:"non_striker_name" json:"non_striker_name"`
 	BowlerName        *string       `db:"bowler_name" json:"bowler_name"`
+	TeamAScore        *int          `db:"team_a_score" json:"team_a_score"`
+	TeamAWickets      *int          `db:"team_a_wickets" json:"team_a_wickets"`
+	TeamABalls        *int          `db:"team_a_balls" json:"team_a_balls"`
+	TeamBScore        *int          `db:"team_b_score" json:"team_b_score"`
+	TeamBWickets      *int          `db:"team_b_wickets" json:"team_b_wickets"`
+	TeamBBalls        *int          `db:"team_b_balls" json:"team_b_balls"`
 }
 
 // for incoming match creation

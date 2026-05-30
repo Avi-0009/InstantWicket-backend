@@ -77,22 +77,46 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.Ma
 
 func GetMatches(limit, offset int) ([]models.Match, error) {
 	var matches []models.Match
-
 	query := `SELECT 
 			m.id, m.team_a_id, 
 			tA.name AS team_a_name, 
 			m.team_b_id, 
 			tB.name AS team_b_name, 
 			m.toss_winner_team_id, m.toss_decision, m.allow_common_player, m.allow_solo_batting, 
-			m.overs_limit, m.status, m.winner_team_id, m.man_of_match, m.worst_player, 
+			m.overs_limit, m.status, 
+			COALESCE(
+				m.winner_team_id,
+				CASE 
+					WHEN m.status = 'completed' THEN
+						CASE 
+							WHEN COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) > 
+								 COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0)
+							THEN m.team_a_id
+							WHEN COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) > 
+								 COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0)
+							THEN m.team_b_id
+							ELSE NULL -- Tie
+						END
+					ELSE NULL
+				END
+			) AS winner_team_id,
+			m.man_of_match, m.worst_player, 
 			m.umpire_id, m.created_by, m.created_at, m.updated_at,
+			u_umpire.name AS umpire_name,
+			u_creator.name AS creator_name,
 			lms.current_score AS live_score,
 			lms.wickets AS live_wickets,
 			lms.legal_balls AS live_legal_balls,
 			lms.required_runs AS target_runs,
 			su.name AS striker_name,
 			nsu.name AS non_striker_name,
-			bu.name AS bowler_name
+			bu.name AS bowler_name,
+			COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_score,
+			COALESCE((SELECT total_wickets FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_wickets,
+			COALESCE((SELECT legal_balls FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_balls,
+			COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_score,
+			COALESCE((SELECT total_wickets FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_wickets,
+			COALESCE((SELECT legal_balls FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_balls
 		FROM matches m
 		JOIN teams tA ON m.team_a_id = tA.id
 		JOIN teams tB ON m.team_b_id = tB.id
@@ -103,6 +127,8 @@ func GetMatches(limit, offset int) ([]models.Match, error) {
 		LEFT JOIN users nsu ON nsps.user_id = nsu.id
 		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
 		LEFT JOIN users bu ON bps.user_id = bu.id
+		LEFT JOIN users u_umpire ON m.umpire_id = u_umpire.id
+		LEFT JOIN users u_creator ON m.created_by = u_creator.id
 		ORDER BY m.created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -121,15 +147,40 @@ func GetMatchByID(matchID string) (*models.Match, error) {
 			m.team_b_id, 
 			tB.name AS team_b_name, 
 			m.toss_winner_team_id, m.toss_decision, m.allow_common_player, m.allow_solo_batting, 
-			m.overs_limit, m.status, m.winner_team_id, m.man_of_match, m.worst_player, 
+			m.overs_limit, m.status, 
+			COALESCE(
+				m.winner_team_id,
+				CASE 
+					WHEN m.status = 'completed' THEN
+						CASE 
+							WHEN COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) > 
+								 COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0)
+							THEN m.team_a_id
+							WHEN COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) > 
+								 COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0)
+							THEN m.team_b_id
+							ELSE NULL -- Tie
+						END
+					ELSE NULL
+				END
+			) AS winner_team_id,
+			m.man_of_match, m.worst_player, 
 			m.umpire_id, m.created_by, m.created_at, m.updated_at,
+			u_umpire.name AS umpire_name,
+			u_creator.name AS creator_name,
 			lms.current_score AS live_score,
 			lms.wickets AS live_wickets,
 			lms.legal_balls AS live_legal_balls,
 			lms.required_runs AS target_runs,
 			su.name AS striker_name,
 			nsu.name AS non_striker_name,
-			bu.name AS bowler_name
+			bu.name AS bowler_name,
+			COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_score,
+			COALESCE((SELECT total_wickets FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_wickets,
+			COALESCE((SELECT legal_balls FROM innings WHERE match_id = m.id AND batting_team_id = m.team_a_id LIMIT 1), 0) AS team_a_balls,
+			COALESCE((SELECT total_runs FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_score,
+			COALESCE((SELECT total_wickets FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_wickets,
+			COALESCE((SELECT legal_balls FROM innings WHERE match_id = m.id AND batting_team_id = m.team_b_id LIMIT 1), 0) AS team_b_balls
 		FROM matches m
 		JOIN teams tA ON m.team_a_id = tA.id
 		JOIN teams tB ON m.team_b_id = tB.id
@@ -140,6 +191,8 @@ func GetMatchByID(matchID string) (*models.Match, error) {
 		LEFT JOIN users nsu ON nsps.user_id = nsu.id
 		LEFT JOIN player_stats bps ON lms.bowler_id = bps.id
 		LEFT JOIN users bu ON bps.user_id = bu.id
+		LEFT JOIN users u_umpire ON m.umpire_id = u_umpire.id
+		LEFT JOIN users u_creator ON m.created_by = u_creator.id
 		WHERE m.id = $1`
 	err := database.DB.Get(&match, query, matchID)
 	if err != nil {
