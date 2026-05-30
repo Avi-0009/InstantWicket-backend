@@ -54,6 +54,11 @@ func GetLiveScoreboardHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch scoreboard: " + err.Error()})
 		return
 	}
+	// return an empty JSON object if scoreboard is nil
+	if scoreboard == nil {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 
 	c.JSON(http.StatusOK, scoreboard)
 }

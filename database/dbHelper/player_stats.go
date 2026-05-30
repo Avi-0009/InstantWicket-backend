@@ -69,7 +69,7 @@ func GetPlayerStatsByPlayerID(playerID string) (*models.PlayerStats, error) {
 		ps.career_mvps, ps.created_at, ps.updated_at, ps.archived_at
 	FROM player_stats ps
 	JOIN users u ON ps.user_id = u.id
-	WHERE ps.id = $1
+	WHERE ps.id = $1 OR ps.user_id = $1
 `
 	err := database.DB.Get(&playerStats, query, playerID)
 

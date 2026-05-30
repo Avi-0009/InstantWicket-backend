@@ -2,6 +2,7 @@ package dbHelper
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/Avi-0009/InstantWicket-backend/database"
@@ -257,7 +258,10 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	err := database.DB.Get(&board, query, matchID)
 	if err != nil {
-		return nil, err
+		//If no row exists yet, just return nil without an error
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 	}
 
 	return &board, nil
@@ -272,15 +276,29 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 		if err != nil {
 			return err
 		}
-		if !allowSoloBatting && req.NonStrikerID == nil {
-			return errors.New("non_striker_id is required")
+		//if !allowSoloBatting && req.NonStrikerID == nil {
+		//	return errors.New("non_striker_id is required")
+		//}
+		// safely convert Go pointers to untyped nil for the SQL driver
+		safeString := func(s *string) interface{} {
+			if s == nil {
+				return nil
+			}
+			return *s
 		}
+		safeInt := func(i *int) interface{} {
+			if i == nil {
+				return nil
+			}
+			return *i
+		}
+
 		err = tx.Get(&inningsID, `
 				INSERT INTO innings(
 				                    match_id, innings_no, batting_team_id, bowling_team_id, striker_id, non_striker_id, bowler_id, target_runs, status
 				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ongoing')
 				RETURNING id`,
-			req.MatchID, req.InningsNo, req.BattingTeamID, req.BowlingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns,
+			req.MatchID, req.InningsNo, req.BattingTeamID, req.BowlingTeamID, safeString(req.StrikerID), safeString(req.NonStrikerID), safeString(req.BowlerID), safeInt(req.TargetRuns),
 		)
 		if err != nil {
 			return err
@@ -302,7 +320,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	                          required_runs = EXCLUDED.required_runs,
 	                          last_updated = CURRENT_TIMESTAMP
 			`,
-			req.MatchID, inningsID, req.BattingTeamID, req.BowlingTeamID, req.StrikerID, req.NonStrikerID, req.BowlerID, req.TargetRuns)
+			req.MatchID, inningsID, req.BattingTeamID, req.BowlingTeamID, safeString(req.StrikerID), safeString(req.NonStrikerID), safeString(req.BowlerID), safeInt(req.TargetRuns))
 		return err
 	})
 	return inningsID, err
