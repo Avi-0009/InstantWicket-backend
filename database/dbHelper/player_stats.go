@@ -33,7 +33,7 @@ func AddGuest(name, phoneNo string) (string, error) {
 	}
 
 	var playerID string
-	statsQuery := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right-hand bat', 'Right-arm medium') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
+	statsQuery := `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right Handed', 'Right Arm Fast') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`
 
 	err = database.DB.Get(&playerID, statsQuery, userID)
 	if err != nil {

@@ -189,7 +189,7 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 		if input.IsWicket && input.OutPlayerID != nil {
 			_, err = tx.Exec(`
 		UPDATE player_match_stats 
-		SET is_not_out = false, updated_at = CURRENT_TIMESTAMP
+		SET is_out = true, updated_at = CURRENT_TIMESTAMP
 		WHERE match_id = $1 AND player_id = $2`,
 				inningsData.MatchID, *input.OutPlayerID,
 			)
@@ -311,7 +311,7 @@ func StartInnings(c context.Context, req models.StartInningsRequest) (string, er
 	batting_team_id = EXCLUDED.batting_team_id,
 	bowling_team_id = EXCLUDED.bowling_team_id,
 	                          striker_id = EXCLUDED.striker_id,
-	    					  non_striker_id = EXCLUDED.non_striker_id,
+	  					  non_striker_id = EXCLUDED.non_striker_id,
 	                          bowler_id = EXCLUDED.bowler_id,
 	                          current_over = 0,
 	                          legal_balls = 0,
@@ -342,7 +342,7 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 			COALESCE(pms.balls_played, 0) AS balls_played,
 			COALESCE(pms.fours, 0) AS fours, 
 			COALESCE(pms.sixes, 0) AS sixes, 
-			pms.is_not_out,
+			pms.is_out,
 			-- balling
 			COALESCE(pms.runs_conceded, 0) AS runs_conceded,
 			COALESCE(pms.wickets_taken, 0) AS wickets_taken,
@@ -390,9 +390,9 @@ func CompleteMatch(c context.Context, matchID string) error {
 				career_fifties = ps.career_fifties + CASE WHEN pms.runs_scored >= 50 AND pms.runs_scored < 100 THEN 1 ELSE 0 END,
 				career_hundreds = ps.career_hundreds + CASE WHEN pms.runs_scored >= 100 THEN 1 ELSE 0 END,				
 				-- ducks & notOut
-				career_not_outs = ps.career_not_outs + CASE WHEN pms.is_not_out = true THEN 1 ELSE 0 END,
-				career_ducks = ps.career_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_not_out = false AND pms.balls_played > 0 THEN 1 ELSE 0 END,
-				career_golden_ducks = ps.career_golden_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_not_out = false AND pms.balls_played = 1 THEN 1 ELSE 0 END,				
+				career_not_outs = ps.career_not_outs + CASE WHEN pms.is_out = false AND (pms.balls_played > 0 OR pms.runs_scored > 0) THEN 1 ELSE 0 END,
+				career_ducks = ps.career_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_out = true AND pms.balls_played > 0 THEN 1 ELSE 0 END,
+				career_golden_ducks = ps.career_golden_ducks + CASE WHEN pms.runs_scored = 0 AND pms.is_out = true AND pms.balls_played = 1 THEN 1 ELSE 0 END,				
 				-- highscore
 				career_highest_score = GREATEST(ps.career_highest_score, pms.runs_scored),
 				-- ball

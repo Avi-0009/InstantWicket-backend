@@ -61,7 +61,7 @@ type PlayerScorecard struct {
 	BallsPlayed  int    `json:"balls_played" db:"balls_played"`
 	Fours        int    `json:"fours" db:"fours"`
 	Sixes        int    `json:"sixes" db:"sixes"`
-	IsNotOut     bool   `json:"is_not_out" db:"is_not_out"`
+	IsOut        bool   `json:"is_out" db:"is_out"`
 	RunsConceded int    `json:"runs_conceded" db:"runs_conceded"`
 	WicketsTaken int    `json:"wickets_taken" db:"wickets_taken"`
 	BallsBowled  int    `json:"balls_bowled" db:"balls_bowled"`

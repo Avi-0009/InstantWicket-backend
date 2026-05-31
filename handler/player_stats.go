@@ -97,7 +97,7 @@ func GetPlayerStats(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Player stats not found"})
 		return
 	}
-	fmt.Println("z")
+	//fmt.Println("z")
 	c.JSON(http.StatusOK, gin.H{"player_stats": playerStats})
 }
 

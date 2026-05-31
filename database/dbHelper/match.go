@@ -43,7 +43,7 @@ func CreateMatch(tx *sqlx.Tx, input models.CreateMatch, teamAPlayers []models.Ma
 				return err
 			}
 
-			err = tx.Get(&playerID, `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right-hand bat', 'Right-arm medium') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`, uID)
+			err = tx.Get(&playerID, `INSERT INTO player_stats (user_id, batting_style, bowling_style) VALUES ($1, 'Right Handed', 'Right Arm Fast') ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP RETURNING id`, uID)
 			if err != nil {
 				return err
 			}
