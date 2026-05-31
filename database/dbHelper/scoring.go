@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/Avi-0009/InstantWicket-backend/database"
 	"github.com/Avi-0009/InstantWicket-backend/models"
@@ -258,9 +259,48 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 
 	err := database.DB.Get(&board, query, matchID)
 	if err != nil {
-		//If no row exists yet, just return nil without an error
 		if err == sql.ErrNoRows {
 			return nil, nil
+		}
+		return nil, err
+	}
+
+	// fetch the last 15 balls
+	if board.InningsID != "" {
+		var rawBalls []struct {
+			RunsFromBat int     `db:"runs_from_bat"`
+			Extras      int     `db:"extras"`
+			ExtraType   *string `db:"extra_type"`
+			IsWicket    bool    `db:"is_wicket"`
+		}
+
+		// Query the last 15 balls for this innings
+		ballQuery := `
+			SELECT runs_from_bat, extras, extra_type, is_wicket
+			FROM balls
+			WHERE innings_id = $1
+			ORDER BY over_number DESC, ball_number DESC
+			LIMIT 15
+		`
+		database.DB.Select(&rawBalls, ballQuery, board.InningsID)
+
+		// Reverse the loop so the oldest ball is on the left and newest is on the right
+		board.RecentBalls = make([]string, 0, len(rawBalls))
+		for i := len(rawBalls) - 1; i >= 0; i-- {
+			b := rawBalls[i]
+			outcome := ""
+
+			if b.IsWicket {
+				outcome = "W"
+			} else if b.ExtraType != nil && *b.ExtraType == "wide" {
+				outcome = fmt.Sprintf("%dwd", b.Extras) // "1wd", etc.
+			} else if b.ExtraType != nil && *b.ExtraType == "no_ball" {
+				outcome = fmt.Sprintf("%dnb", b.RunsFromBat+b.Extras) // "7nb", etc.
+			} else {
+				outcome = fmt.Sprintf("%d", b.RunsFromBat) // "0", "4", "6", etc.
+			}
+
+			board.RecentBalls = append(board.RecentBalls, outcome)
 		}
 	}
 
@@ -337,28 +377,36 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 	query := `
 		SELECT 
 			pms.team_id, pms.player_id, COALESCE(u.name, 'Unknown') AS player_name,			
-			-- batting
 			COALESCE(pms.runs_scored, 0) AS runs_scored,
 			COALESCE(pms.balls_played, 0) AS balls_played,
 			COALESCE(pms.fours, 0) AS fours, 
 			COALESCE(pms.sixes, 0) AS sixes, 
 			pms.is_out,
-			-- balling
+			CASE 
+				WHEN pms.is_out = true THEN 'Out'
+				WHEN lms.striker_id = pms.player_id OR lms.non_striker_id = pms.player_id THEN 
+					CASE WHEN m.status = 'completed' THEN 'Not out' ELSE 'Batting' END
+				WHEN pms.balls_played > 0 OR pms.runs_scored > 0 THEN 'Not out'
+				WHEN m.status = 'completed' THEN 'Did not bat'
+				ELSE 'Yet to bat'
+			END AS batting_status,
 			COALESCE(pms.runs_conceded, 0) AS runs_conceded,
 			COALESCE(pms.wickets_taken, 0) AS wickets_taken,
 			COALESCE(pms.balls_bowled, 0) AS balls_bowled,
 			COALESCE(pms.maiden_overs, 0) AS maidens,
 			COALESCE(pms.wides, 0) AS wides,
 			COALESCE(pms.no_balls, 0) AS no_balls,			
-			-- fielding
 			COALESCE(pms.catches, 0) AS catches,
 			COALESCE(pms.runouts, 0) AS runouts,
 			COALESCE(pms.stumpings, 0) AS stumpings
 		FROM player_match_stats pms
 		JOIN player_stats ps ON pms.player_id = ps.id
 		JOIN users u ON ps.user_id = u.id
+		JOIN matches m ON m.id = pms.match_id
+		LEFT JOIN live_match_stats lms ON lms.match_id = pms.match_id 
 		WHERE pms.match_id = $1
 	`
+
 	err := database.DB.Select(&scorecard, query, matchID)
 	if scorecard == nil {
 		scorecard = []models.PlayerScorecard{}
