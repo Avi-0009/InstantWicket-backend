@@ -20,5 +20,7 @@ func UserRoutes(r *gin.Engine) {
 			middleware.AuthMiddleware(),
 			handler.LogoutUser,
 		)
+
+		user.PUT("/profile", middleware.AuthMiddleware(), handler.UpdateUserProfile)
 	}
 }

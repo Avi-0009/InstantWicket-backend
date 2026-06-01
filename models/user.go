@@ -18,6 +18,13 @@ type User struct {
 	Password string `db:"password" json:"-"`
 }
 
+type UpdateProfile struct {
+	Name         string `db:"name" json:"name"`
+	PhoneNo      string `db:"phone_no" json:"phone_no"`
+	BattingStyle string `db:"batting_style" json:"batting_style"`
+	BowlingStyle string `db:"bowling_style" json:"bowling_style"`
+}
+
 type ResetPassword struct {
 	PhoneNo  string `json:"phone_no" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`

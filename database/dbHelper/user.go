@@ -35,6 +35,25 @@ func GetUserByPhoneNo(phoneNo string) (*models.User, error) {
 	return &user, nil
 }
 
+func UpdateUserProfile(userID string, req models.UpdateProfile) error {
+	userQuery := `UPDATE users SET name = COALESCE(NULLIF($1, ''), name), phone_no = COALESCE(NULLIF($2, ''), phone_no), updated_at = NOW() WHERE id = $3`
+	_, err := database.DB.Exec(userQuery, req.Name, req.PhoneNo, userID)
+	if err != nil {
+		//fmt.Printf("Error updating users table: %v\n", err)
+		return err
+	}
+
+	playerQuery := `UPDATE player_stats
+					SET batting_style = COALESCE(NULLIF($1, ''), batting_style),
+			bowling_style = COALESCE(NULLIF($2, ''), bowling_style)
+					WHERE user_id = $3`
+	_, err = database.DB.Exec(playerQuery, req.BattingStyle, req.BowlingStyle, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdatePassword(phone string, password string) (string, error) {
 
 	var userID string
