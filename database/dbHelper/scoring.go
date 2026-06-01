@@ -191,8 +191,8 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			_, err = tx.Exec(`
 		UPDATE player_match_stats 
 		SET is_out = true, updated_at = CURRENT_TIMESTAMP
-		WHERE match_id = $1 AND player_id = $2`,
-				inningsData.MatchID, *input.OutPlayerID,
+		WHERE match_id = $1 AND player_id = $2 AND team_id = $3`,
+				inningsData.MatchID, *input.OutPlayerID, inningsData.BattingTeamID,
 			)
 			if err != nil {
 				return err
@@ -384,7 +384,7 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 			pms.is_out,
 			CASE 
 				WHEN pms.is_out = true THEN 'Out'
-				WHEN lms.striker_id = pms.player_id OR lms.non_striker_id = pms.player_id THEN 
+				WHEN (lms.striker_id = pms.player_id OR lms.non_striker_id = pms.player_id) AND lms.batting_team_id = pms.team_id THEN 
 					CASE WHEN m.status = 'completed' THEN 'Not out' ELSE 'Batting' END
 				WHEN pms.balls_played > 0 OR pms.runs_scored > 0 THEN 'Not out'
 				WHEN m.status = 'completed' THEN 'Did not bat'
@@ -421,7 +421,6 @@ func CompleteMatch(c context.Context, matchID string) error {
 		if err != nil {
 			return err
 		}
-
 		// feed all matchstats data to careerstats
 		_, err = tx.Exec(`
 			UPDATE player_stats ps
@@ -460,7 +459,18 @@ func CompleteMatch(c context.Context, matchID string) error {
 				-- fielding
 				career_catches = ps.career_catches + pms.catches,
 				career_runouts = ps.career_runouts + pms.runouts,
-				career_stumpings = ps.career_stumpings + pms.stumpings
+				career_stumpings = ps.career_stumpings + pms.stumpings,
+				-- calc strike rate and eco of player
+				strike_rate = CASE 
+				    WHEN (ps.career_balls_faced + pms.balls_played) > 0 
+				    THEN ((ps.career_runs + pms.runs_scored)::DECIMAL / (ps.career_balls_faced + pms.balls_played)::DECIMAL) * 100 
+				    ELSE 0 
+				END,
+				economy = CASE 
+				    WHEN (ps.career_balls_bowled + pms.balls_bowled) > 0 
+				    THEN ((ps.career_runs_conceded + pms.runs_conceded)::DECIMAL / ((ps.career_balls_bowled + pms.balls_bowled)::DECIMAL / 6.0))
+				    ELSE 0 
+				END
 			FROM player_match_stats pms
 			WHERE ps.id = pms.player_id AND pms.match_id = $1;
 		`, matchID)
