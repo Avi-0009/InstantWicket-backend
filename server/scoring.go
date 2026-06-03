@@ -19,5 +19,6 @@ func ScoringRoutes(r *gin.Engine) {
 		protected.POST("/ball", handler.RecordBallHandler)
 		protected.POST("/innings/:innings_id/complete", handler.CompleteInningsHandler)
 		protected.POST("/match/:match_id/complete", handler.CompleteMatchHandler)
+		protected.POST("/undo/:match_id", handler.UndoBallHandler)
 	}
 }

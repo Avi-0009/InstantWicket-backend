@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type StartInningsRequest struct {
 	MatchID       string  `json:"match_id" binding:"required"`
 	BattingTeamID string  `json:"batting_team_id" binding:"required"`
@@ -73,4 +75,26 @@ type PlayerScorecard struct {
 	Catches       int    `json:"catches" db:"catches"`
 	Runouts       int    `json:"runouts" db:"runouts"`
 	Stumpings     int    `json:"stumpings" db:"stumpings"`
+}
+
+type Ball struct {
+	ID               int       `db:"id" json:"id"`
+	MatchID          string    `db:"match_id" json:"match_id"`
+	InningsID        string    `db:"innings_id" json:"innings_id"`
+	OverNumber       int       `db:"over_number" json:"over_number"`
+	BallNumber       int       `db:"ball_number" json:"ball_number"`
+	StrikerID        *string   `db:"striker_id" json:"striker_id"`
+	NonStrikerID     *string   `db:"non_striker_id" json:"non_striker_id"`
+	BowlerID         *string   `db:"bowler_id" json:"bowler_id"`
+	IsLegalBall      bool      `db:"is_legal_ball" json:"is_legal_ball"`
+	RunsFromBat      int       `db:"runs_from_bat" json:"runs_from_bat"`
+	Extras           int       `db:"extras" json:"extras"`
+	IsWicket         bool      `db:"is_wicket" json:"is_wicket"`
+	ExtraType        *string   `db:"extra_type" json:"extra_type"`
+	WicketType       *string   `db:"wicket_type" json:"wicket_type"`
+	OutPlayerID      *string   `db:"out_player_id" json:"out_player_id"`
+	FielderID        *string   `db:"fielder_id" json:"fielder_id"`
+	PartnershipRuns  int       `db:"partnership_runs" json:"partnership_runs"`
+	PartnershipBalls int       `db:"partnership_balls" json:"partnership_balls"`
+	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 }

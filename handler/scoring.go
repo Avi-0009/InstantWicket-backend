@@ -136,3 +136,23 @@ func CompleteMatchHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Match completed successfully"})
 }
+
+func UndoBallHandler(c *gin.Context) {
+	matchID := c.Param("match_id")
+	if matchID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "match_id is required"})
+		return
+	}
+
+	err := dbHelper.UndoLastBall(c.Request.Context(), matchID)
+	if err != nil {
+		if err.Error() == "no balls found to undo" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No balls bowled yet in this innings"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Ball undone successfully"})
+}
