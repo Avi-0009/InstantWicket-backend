@@ -481,35 +481,73 @@ func CompleteMatch(c context.Context, matchID string) error {
 func UndoLastBall(c context.Context, matchID string) error {
 	return database.WithTransaction(c, func(tx *sqlx.Tx) error {
 
-		// fetch the last recorded ball
-		var lastBall models.Ball
+		// fetch last boll
+		var lastBall struct {
+			ID               string         `db:"id"`
+			InningsID        string         `db:"innings_id"`
+			StrikerID        sql.NullString `db:"striker_id"`
+			NonStrikerID     sql.NullString `db:"non_striker_id"`
+			BowlerID         sql.NullString `db:"bowler_id"`
+			IsLegalBall      sql.NullBool   `db:"is_legal_ball"`
+			RunsFromBat      sql.NullInt64  `db:"runs_from_bat"`
+			Extras           sql.NullInt64  `db:"extras"`
+			IsWicket         sql.NullBool   `db:"is_wicket"`
+			ExtraType        sql.NullString `db:"extra_type"`
+			WicketType       sql.NullString `db:"wicket_type"`
+			OutPlayerID      sql.NullString `db:"out_player_id"`
+			FielderID        sql.NullString `db:"fielder_id"`
+			PartnershipRuns  sql.NullInt64  `db:"partnership_runs"`
+			PartnershipBalls sql.NullInt64  `db:"partnership_balls"`
+		}
+
 		err := tx.Get(&lastBall, `
-			SELECT id, match_id, innings_id, over_number, ball_number, striker_id, non_striker_id, bowler_id, 
-			       is_legal_ball, runs_from_bat, extras, is_wicket, extra_type, wicket_type, out_player_id, 
-			       fielder_id, partnership_runs, partnership_balls, created_at 
-			FROM balls 
-			WHERE match_id = $1 
-			ORDER BY id DESC LIMIT 1
+			SELECT 
+				b.id,
+				b.innings_id,
+				b.striker_id,
+				b.non_striker_id,
+				b.bowler_id,
+				b.is_legal_ball,
+				b.runs_from_bat,
+				b.extras,
+				b.is_wicket,
+				b.extra_type,
+				b.wicket_type,
+				b.out_player_id,
+				b.fielder_id,
+				b.partnership_runs,
+				b.partnership_balls 
+			FROM balls b
+			JOIN innings i ON i.id = b.innings_id
+			WHERE i.match_id = $1
+			ORDER BY b.created_at DESC 
+			LIMIT 1
 		`, matchID)
 
 		if err != nil {
-			return fmt.Errorf("no balls found to undo")
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("no balls found to undo")
+			}
+			return err
 		}
 
-		// fetch the second-to-last ball to safely restore the partnership score
+		// fetch last ball for partnershp
 		var prevBall struct {
-			PartnershipRuns  int `db:"partnership_runs"`
-			PartnershipBalls int `db:"partnership_balls"`
+			PartnershipRuns  sql.NullInt64 `db:"partnership_runs"`
+			PartnershipBalls sql.NullInt64 `db:"partnership_balls"`
 		}
-		hasPrevBall := false
+
 		err = tx.Get(&prevBall, `
-			SELECT partnership_runs, partnership_balls FROM balls 
-			WHERE match_id = $1 AND innings_id = $2 AND id != $3 
-			ORDER BY id DESC LIMIT 1
+			SELECT b.partnership_runs, b.partnership_balls
+			FROM balls b
+			JOIN innings i ON i.id = b.innings_id
+			WHERE i.match_id = $1
+			  AND b.innings_id = $2
+			  AND b.id != $3
+			ORDER BY b.created_at DESC
+			LIMIT 1
 		`, matchID, lastBall.InningsID, lastBall.ID)
-		if err == nil {
-			hasPrevBall = true
-		}
+		hasPrevBall := (err == nil)
 
 		// del the last ball
 		_, err = tx.Exec("DELETE FROM balls WHERE id = $1", lastBall.ID)
@@ -517,131 +555,183 @@ func UndoLastBall(c context.Context, matchID string) error {
 			return err
 		}
 
-		// rev batter stats
+		// extract values
+		isLegal := true
+		if lastBall.IsLegalBall.Valid {
+			isLegal = lastBall.IsLegalBall.Bool
+		}
+		runsBat := 0
+		if lastBall.RunsFromBat.Valid {
+			runsBat = int(lastBall.RunsFromBat.Int64)
+		}
+		ext := 0
+		if lastBall.Extras.Valid {
+			ext = int(lastBall.Extras.Int64)
+		}
+		isWkt := false
+		if lastBall.IsWicket.Valid {
+			isWkt = lastBall.IsWicket.Bool
+		}
+
+		// rev player_match_stats for batter
 		batterBalls := 0
-		if lastBall.IsLegalBall || (lastBall.ExtraType != nil && *lastBall.ExtraType == "no_ball") {
+		if isLegal || (lastBall.ExtraType.Valid && lastBall.ExtraType.String == "no_ball") {
 			batterBalls = 1
 		}
 		fours, sixes := 0, 0
-		if lastBall.RunsFromBat == 4 {
+		if runsBat == 4 {
 			fours = 1
 		}
-		if lastBall.RunsFromBat == 6 {
+		if runsBat == 6 {
 			sixes = 1
 		}
 
-		if lastBall.StrikerID != nil {
+		if lastBall.StrikerID.Valid {
 			_, err = tx.Exec(`
 				UPDATE player_match_stats 
-				SET runs_scored = GREATEST(runs_scored - $1, 0),
-					balls_played = GREATEST(balls_played - $2, 0),
-					fours = GREATEST(fours - $3, 0),
-					sixes = GREATEST(sixes - $4, 0)
+				SET runs_scored = GREATEST(runs_scored - $1, 0), balls_played = GREATEST(balls_played - $2, 0),
+					fours = GREATEST(fours - $3, 0), sixes = GREATEST(sixes - $4, 0),
+					updated_at = CURRENT_TIMESTAMP
 				WHERE match_id = $5 AND player_id = $6
-			`, lastBall.RunsFromBat, batterBalls, fours, sixes, matchID, *lastBall.StrikerID)
+			`, runsBat, batterBalls, fours, sixes, matchID, lastBall.StrikerID.String)
 			if err != nil {
 				return err
 			}
 		}
 
-		// rev bowler stats
+		// rev player_match_stats for bowler
 		bowlerBalls := 0
-		if lastBall.IsLegalBall {
+		if isLegal {
 			bowlerBalls = 1
 		}
-		bowlerRuns := lastBall.RunsFromBat + lastBall.Extras
-		if lastBall.ExtraType != nil && (*lastBall.ExtraType == "bye" || *lastBall.ExtraType == "leg_bye") {
+		bowlerRuns := runsBat + ext
+		if lastBall.ExtraType.Valid && (lastBall.ExtraType.String == "bye" || lastBall.ExtraType.String == "leg_bye") {
 			bowlerRuns = 0
 		}
 
 		wides, noBalls := 0, 0
-		if lastBall.ExtraType != nil {
-			if *lastBall.ExtraType == "wide" {
-				wides = lastBall.Extras
+		if lastBall.ExtraType.Valid {
+			if lastBall.ExtraType.String == "wide" {
+				wides = ext
 			}
-			if *lastBall.ExtraType == "no_ball" {
-				noBalls = lastBall.Extras
+			if lastBall.ExtraType.String == "no_ball" {
+				noBalls = ext
 			}
 		}
 
 		wickets := 0
-		if lastBall.IsWicket && lastBall.WicketType != nil && *lastBall.WicketType != "run_out" {
+		if isWkt && lastBall.WicketType.Valid && lastBall.WicketType.String != "run_out" {
 			wickets = 1
 		}
 
-		if lastBall.BowlerID != nil {
+		if lastBall.BowlerID.Valid {
 			_, err = tx.Exec(`
 				UPDATE player_match_stats 
-				SET runs_conceded = GREATEST(runs_conceded - $1, 0),
-					balls_bowled = GREATEST(balls_bowled - $2, 0),
-					wides = GREATEST(wides - $3, 0),
-					no_balls = GREATEST(no_balls - $4, 0),
-					wickets_taken = GREATEST(wickets_taken - $5, 0)
+				SET runs_conceded = GREATEST(runs_conceded - $1, 0), balls_bowled = GREATEST(balls_bowled - $2, 0),
+					wides = GREATEST(wides - $3, 0), no_balls = GREATEST(no_balls - $4, 0), wickets_taken = GREATEST(wickets_taken - $5, 0)
 				WHERE match_id = $6 AND player_id = $7
-			`, bowlerRuns, bowlerBalls, wides, noBalls, wickets, matchID, *lastBall.BowlerID)
+			`, bowlerRuns, bowlerBalls, wides, noBalls, wickets, matchID, lastBall.BowlerID.String)
 			if err != nil {
 				return err
 			}
 		}
-		// rev fielder stats
-		if lastBall.IsWicket && lastBall.FielderID != nil && lastBall.WicketType != nil {
+		// rev player_match_stats for fielder
+		if isWkt && lastBall.FielderID.Valid && lastBall.WicketType.Valid {
 			catches, runouts, stumpings := 0, 0, 0
-			if *lastBall.WicketType == "caught" {
+			if lastBall.WicketType.String == "caught" || lastBall.WicketType.String == "caught_and_bowled" {
 				catches = 1
 			}
-			if *lastBall.WicketType == "run_out" {
+			if lastBall.WicketType.String == "run_out" {
 				runouts = 1
 			}
-			if *lastBall.WicketType == "stumped" {
+			if lastBall.WicketType.String == "stumped" {
 				stumpings = 1
 			}
 
 			_, err = tx.Exec(`
 				UPDATE player_match_stats 
-				SET catches = GREATEST(catches - $1, 0), runouts = GREATEST(runouts - $2, 0), stumpings = GREATEST(stumpings - $3, 0)
+				SET catches = GREATEST(catches - $1, 0), runouts = GREATEST(runouts - $2, 0), stumpings = GREATEST(stumpings - $3, 0),
+					updated_at = CURRENT_TIMESTAMP
 				WHERE match_id = $4 AND player_id = $5
-			`, catches, runouts, stumpings, matchID, *lastBall.FielderID)
+			`, catches, runouts, stumpings, matchID, lastBall.FielderID.String)
 			if err != nil {
 				return err
 			}
 		}
-		// rev wicket
-		if lastBall.IsWicket && lastBall.OutPlayerID != nil {
+
+		// rev wick
+		if isWkt && lastBall.OutPlayerID.Valid {
 			_, err = tx.Exec(`
-				UPDATE player_match_stats SET is_out = false 
-				WHERE match_id = $1 AND player_id = $2 
-				AND team_id = (SELECT batting_team_id FROM live_match_stats WHERE innings_id = $3)
-			`, matchID, *lastBall.OutPlayerID, lastBall.InningsID)
+				UPDATE player_match_stats SET is_out = false, updated_at = CURRENT_TIMESTAMP
+				WHERE match_id = $1 AND player_id = $2
+			`, matchID, lastBall.OutPlayerID.String)
 			if err != nil {
 				return err
 			}
 		}
-		// rev live match stats
-		totalRuns := lastBall.RunsFromBat + lastBall.Extras
+
+		// prep inning & match stat rev
+		totalRuns := runsBat + ext
 		legalBalls := 0
-		if lastBall.IsLegalBall {
+		if isLegal {
 			legalBalls = 1
 		}
 		totalWickets := 0
-		if lastBall.IsWicket {
+		if isWkt {
 			totalWickets = 1
 		}
+
+		// rev innings
+		_, err = tx.Exec(`
+			UPDATE innings 
+			SET 
+				total_runs = GREATEST(total_runs - $1, 0),
+				total_wickets = GREATEST(total_wickets - $2, 0),
+				total_extras = GREATEST(total_extras - $3, 0),
+				legal_balls = GREATEST(legal_balls - $4, 0),
+				updated_at = CURRENT_TIMESTAMP
+			WHERE id = $5
+		`, totalRuns, totalWickets, ext, legalBalls, lastBall.InningsID)
+		if err != nil {
+			return err
+		}
+
+		// rev live_match_stats
 		partRuns, partBalls := 0, 0
 		if hasPrevBall {
-			partRuns = prevBall.PartnershipRuns
-			partBalls = prevBall.PartnershipBalls
+			if prevBall.PartnershipRuns.Valid {
+				partRuns = int(prevBall.PartnershipRuns.Int64)
+			}
+			if prevBall.PartnershipBalls.Valid {
+				partBalls = int(prevBall.PartnershipBalls.Int64)
+			}
+		}
+
+		// Prepare nullable pointers for the UPDATE
+		var sID, nsID, bID interface{} = nil, nil, nil
+		if lastBall.StrikerID.Valid {
+			sID = lastBall.StrikerID.String
+		}
+		if lastBall.NonStrikerID.Valid {
+			nsID = lastBall.NonStrikerID.String
+		}
+		if lastBall.BowlerID.Valid {
+			bID = lastBall.BowlerID.String
 		}
 
 		_, err = tx.Exec(`
 			UPDATE live_match_stats
 			SET current_score = GREATEST(current_score - $1, 0), legal_balls = GREATEST(legal_balls - $2, 0), wickets = GREATEST(wickets - $3, 0),
-				striker_id = $4, non_striker_id = $5, bowler_id = $6, partnership_runs = $7, partnership_balls = $8
+			    current_over = GREATEST(legal_balls - $2, 0) / 6,
+				striker_id = $4, non_striker_id = $5, bowler_id = $6, partnership_runs = $7, partnership_balls = $8,
+				last_updated = CURRENT_TIMESTAMP
 			WHERE match_id = $9 AND innings_id = $10
-		`, totalRuns, legalBalls, totalWickets, lastBall.StrikerID, lastBall.NonStrikerID, lastBall.BowlerID, partRuns, partBalls, matchID, lastBall.InningsID)
+		`, totalRuns, legalBalls, totalWickets, sID, nsID, bID, partRuns, partBalls, matchID, lastBall.InningsID)
 		if err != nil {
 			return err
 		}
-		// If the ball triggered the end of the match, this unlocks it!
+
+		// make status ongoing from completed (If undone ball triggered match completion, this reopens it)
 		_, err = tx.Exec("UPDATE matches SET status = 'ongoing' WHERE id = $1 AND status = 'completed'", matchID)
 		return err
 	})

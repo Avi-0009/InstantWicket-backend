@@ -150,6 +150,7 @@ func UndoBallHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "No balls bowled yet in this innings"})
 			return
 		}
+		//fmt.Println("Undo DB Error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
