@@ -393,7 +393,7 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 			COALESCE(pms.runs_conceded, 0) AS runs_conceded,
 			COALESCE(pms.wickets_taken, 0) AS wickets_taken,
 			COALESCE(pms.balls_bowled, 0) AS balls_bowled,
-			COALESCE(pms.maiden_overs, 0) AS maidens,
+			COALESCE(mc.calculated_maidens, 0) AS maidens,
 			COALESCE(pms.wides, 0) AS wides,
 			COALESCE(pms.no_balls, 0) AS no_balls,			
 			COALESCE(pms.catches, 0) AS catches,
@@ -404,6 +404,18 @@ func GetMatchScorecard(matchID string) ([]models.PlayerScorecard, error) {
 		JOIN users u ON ps.user_id = u.id
 		JOIN matches m ON m.id = pms.match_id
 		LEFT JOIN live_match_stats lms ON lms.match_id = pms.match_id 
+		LEFT JOIN (
+			SELECT bowler_id, COUNT(*) as calculated_maidens
+			FROM (
+				SELECT b.bowler_id, b.innings_id, b.over_number
+				FROM balls b
+				JOIN innings i ON i.id = b.innings_id
+				WHERE i.match_id = $1
+				GROUP BY b.bowler_id, b.innings_id, b.over_number
+				HAVING SUM(b.total_runs) = 0 AND SUM(CASE WHEN b.is_legal_ball THEN 1 ELSE 0 END) = 6
+			) AS valid_overs
+			GROUP BY bowler_id
+		) mc ON mc.bowler_id = pms.player_id
 		WHERE pms.match_id = $1
 	`
 
@@ -418,6 +430,30 @@ func CompleteMatch(c context.Context, matchID string) error {
 	return database.WithTransaction(c, func(tx *sqlx.Tx) error {
 		// set match to completed
 		_, err := tx.Exec(`UPDATE matches SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, matchID)
+		if err != nil {
+			return err
+		}
+		// Sync maidens before updating career stats
+		_, err = tx.Exec(`
+			WITH MaidenCounts AS (
+				SELECT bowler_id, COUNT(*) as maidens
+				FROM (
+					SELECT b.bowler_id, b.innings_id, b.over_number, 
+						   SUM(b.total_runs) as over_runs, 
+						   SUM(CASE WHEN b.is_legal_ball THEN 1 ELSE 0 END) as legal_balls
+					FROM balls b
+					JOIN innings i ON i.id = b.innings_id
+					WHERE i.match_id = $1
+					GROUP BY b.bowler_id, b.innings_id, b.over_number
+				) over_stats
+				WHERE over_runs = 0 AND legal_balls = 6
+				GROUP BY bowler_id
+			)
+			UPDATE player_match_stats pms
+			SET maiden_overs = COALESCE(mc.maidens, 0)
+			FROM MaidenCounts mc
+			WHERE pms.player_id = mc.bowler_id AND pms.match_id = $1
+		`, matchID)
 		if err != nil {
 			return err
 		}
