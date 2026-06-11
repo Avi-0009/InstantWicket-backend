@@ -61,18 +61,41 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			return errors.New("cannot record ball: innings is no longer ongoing")
 		}
 
+		var currentMatchStats struct {
+			LegalBalls       int `db:"legal_balls"`
+			PartnershipRuns  int `db:"partnership_runs"`
+			PartnershipBalls int `db:"partnership_balls"`
+		}
+		err = tx.Get(&currentMatchStats, `SELECT legal_balls, partnership_runs, partnership_balls FROM live_match_stats WHERE match_id = $1`, inningsData.MatchID)
+		if err != nil {
+			return err
+		}
+
 		totalRunsOnBall := input.RunsFromBat + input.Extras
+		// Calculate exact partnership state at the end of this ball
+		ballPartRuns := currentMatchStats.PartnershipRuns + totalRunsOnBall
+		ballPartBalls := currentMatchStats.PartnershipBalls
+		if input.IsLegalBall {
+			ballPartBalls++
+		}
+		if input.IsWicket {
+			ballPartRuns = 0
+			ballPartBalls = 0
+		}
+
 		_, err = tx.Exec(`
 			INSERT INTO balls (
 				innings_id, over_number, ball_number, is_legal_ball, 
 				runs_from_bat, extras, extra_type, total_runs, is_wicket, wicket_type, 
-				fielder_id, striker_id, non_striker_id, bowler_id, out_player_id
+				fielder_id, striker_id, non_striker_id, bowler_id, out_player_id,
+				partnership_runs, partnership_balls
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
 			)`,
 			input.InningsID, input.OverNumber, input.BallNumber, input.IsLegalBall,
 			input.RunsFromBat, input.Extras, input.ExtraType, totalRunsOnBall, input.IsWicket, input.WicketType,
 			input.FielderID, input.StrikerID, input.NonStrikerID, input.BowlerID, input.OutPlayerID,
+			ballPartRuns, ballPartBalls, // <-- Saves the history so Undo works perfectly!
 		)
 		if err != nil {
 			return err
@@ -112,15 +135,20 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 
 		// calc physical runs (Runs from bat + Byes + Leg Byes)
 		physicalRuns := input.RunsFromBat
-		if input.ExtraType != nil && (*input.ExtraType == "bye" || *input.ExtraType == "leg_bye") {
-			physicalRuns = input.Extras
+		if input.ExtraType != nil {
+			if *input.ExtraType == "bye" || *input.ExtraType == "leg_bye" {
+				physicalRuns = input.Extras
+			} else if *input.ExtraType == "wide" || *input.ExtraType == "no_ball" {
+				// If they ran on a Wide/No Ball, subtract the 1 penalty run to find actual crossing runs
+				physicalRuns = input.Extras - 1
+			}
 		}
 		swappedForRuns := physicalRuns%2 != 0
 
 		// check if the over is completed
 		isOverComplete := false
 		if input.IsLegalBall {
-			isOverComplete = (currentLegalBalls+1)%6 == 0
+			isOverComplete = (currentMatchStats.LegalBalls+1)%6 == 0
 		}
 
 		// check for the next striker and non-striker
@@ -129,10 +157,13 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 		nextNonStrikerID := input.NonStrikerID
 
 		// swap if they ran odd runs OR the over ended, but NOT both(XOR logic)
-		if swappedForRuns != isOverComplete {
-			temp := nextStrikerID
-			nextStrikerID = nextNonStrikerID
-			nextNonStrikerID = temp
+		// only rotate the strike if there is actually a non-striker! (Ignores Solo Batting)
+		if nextNonStrikerID != nil {
+			if swappedForRuns != isOverComplete {
+				temp := nextStrikerID
+				nextStrikerID = nextNonStrikerID
+				nextNonStrikerID = temp
+			}
 		}
 
 		// set the out player to nil so the frontend knows they are gone
@@ -169,9 +200,9 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 		}
 
 		// updating batsmam's stats here
-		ballsFacedIncrement := 1
-		if input.ExtraType != nil && *input.ExtraType == "wide" {
-			ballsFacedIncrement = 0 // wide don't count as legit ball
+		ballsFacedIncrement := 0
+		if input.IsLegalBall {
+			ballsFacedIncrement = 1 // Only count as ball faced if it's a legal delivery (Standard, Bye, Leg Bye)
 		}
 
 		fours, sixes := 0, 0
@@ -331,15 +362,22 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 		for i := len(rawBalls) - 1; i >= 0; i-- {
 			b := rawBalls[i]
 			outcome := ""
-
-			if b.IsWicket {
+			if b.IsWicket && b.ExtraType != nil && *b.ExtraType == "no_ball" {
+				outcome = fmt.Sprintf("%dnb W", b.RunsFromBat+b.Extras)
+			} else if b.IsWicket && b.ExtraType != nil && *b.ExtraType == "wide" {
+				outcome = fmt.Sprintf("%dwd W", b.Extras)
+			} else if b.IsWicket {
 				outcome = "W"
 			} else if b.ExtraType != nil && *b.ExtraType == "wide" {
-				outcome = fmt.Sprintf("%dwd", b.Extras) // "1wd", etc.
+				outcome = fmt.Sprintf("%dwd", b.Extras)
 			} else if b.ExtraType != nil && *b.ExtraType == "no_ball" {
-				outcome = fmt.Sprintf("%dnb", b.RunsFromBat+b.Extras) // "7nb", etc.
+				outcome = fmt.Sprintf("%dnb", b.RunsFromBat+b.Extras)
+			} else if b.ExtraType != nil && *b.ExtraType == "bye" {
+				outcome = fmt.Sprintf("%db", b.RunsFromBat+b.Extras)
+			} else if b.ExtraType != nil && *b.ExtraType == "leg_bye" {
+				outcome = fmt.Sprintf("%dlb", b.RunsFromBat+b.Extras)
 			} else {
-				outcome = fmt.Sprintf("%d", b.RunsFromBat) // "0", "4", "6", etc.
+				outcome = fmt.Sprintf("%d", b.RunsFromBat)
 			}
 
 			board.RecentBalls = append(board.RecentBalls, outcome)
@@ -653,8 +691,8 @@ func UndoLastBall(c context.Context, matchID string) error {
 
 		// rev player_match_stats for batter
 		batterBalls := 0
-		if isLegal || (lastBall.ExtraType.Valid && lastBall.ExtraType.String == "no_ball") {
-			batterBalls = 1
+		if isLegal {
+			batterBalls = 1 // Only revert ball if it was a legal delivery
 		}
 		fours, sixes := 0, 0
 		if runsBat == 4 {
