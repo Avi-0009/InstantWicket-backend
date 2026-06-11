@@ -103,6 +103,48 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			return err
 		}
 
+		// strike rotation code here
+		var currentLegalBalls int
+		err = tx.Get(&currentLegalBalls, `SELECT legal_balls FROM live_match_stats WHERE match_id = $1`, inningsData.MatchID)
+		if err != nil {
+			return err
+		}
+
+		// calc physical runs (Runs from bat + Byes + Leg Byes)
+		physicalRuns := input.RunsFromBat
+		if input.ExtraType != nil && (*input.ExtraType == "bye" || *input.ExtraType == "leg_bye") {
+			physicalRuns = input.Extras
+		}
+		swappedForRuns := physicalRuns%2 != 0
+
+		// check if the over is completed
+		isOverComplete := false
+		if input.IsLegalBall {
+			isOverComplete = (currentLegalBalls+1)%6 == 0
+		}
+
+		// check for the next striker and non-striker
+		// we convert StrikerID to a pointer by using the '&' address operator
+		nextStrikerID := &input.StrikerID
+		nextNonStrikerID := input.NonStrikerID
+
+		// swap if they ran odd runs OR the over ended, but NOT both(XOR logic)
+		if swappedForRuns != isOverComplete {
+			temp := nextStrikerID
+			nextStrikerID = nextNonStrikerID
+			nextNonStrikerID = temp
+		}
+
+		// set the out player to nil so the frontend knows they are gone
+		if input.IsWicket && input.OutPlayerID != nil {
+			if nextStrikerID != nil && *nextStrikerID == *input.OutPlayerID {
+				nextStrikerID = nil
+			}
+			if nextNonStrikerID != nil && *nextNonStrikerID == *input.OutPlayerID {
+				nextNonStrikerID = nil
+			}
+		}
+
 		// updating live match stats here
 		_, err = tx.Exec(`
 			UPDATE live_match_stats 
@@ -120,7 +162,7 @@ func RecordBall(c context.Context, input models.RecordBallRequest) error {
 			    last_updated = CURRENT_TIMESTAMP
 			WHERE match_id = $9`,
 			totalRunsOnBall, wicketIncrement, legalBallIncrement,
-			input.StrikerID, input.NonStrikerID, input.BowlerID, inningsData.BattingTeamID, inningsData.BowlingTeamID, inningsData.MatchID,
+			nextStrikerID, nextNonStrikerID, input.BowlerID, inningsData.BattingTeamID, inningsData.BowlingTeamID, inningsData.MatchID,
 		)
 		if err != nil {
 			return err
