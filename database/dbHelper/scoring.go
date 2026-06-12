@@ -352,7 +352,7 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 			SELECT runs_from_bat, extras, extra_type, is_wicket
 			FROM balls
 			WHERE innings_id = $1
-			ORDER BY over_number DESC, ball_number DESC
+			ORDER BY created_at DESC
 			LIMIT 15
 		`
 		database.DB.Select(&rawBalls, ballQuery, board.InningsID)
@@ -362,22 +362,57 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 		for i := len(rawBalls) - 1; i >= 0; i-- {
 			b := rawBalls[i]
 			outcome := ""
-			if b.IsWicket && b.ExtraType != nil && *b.ExtraType == "no_ball" {
-				outcome = fmt.Sprintf("%dnb W", b.RunsFromBat+b.Extras)
-			} else if b.IsWicket && b.ExtraType != nil && *b.ExtraType == "wide" {
-				outcome = fmt.Sprintf("%dwd W", b.Extras)
-			} else if b.IsWicket {
-				outcome = "W"
-			} else if b.ExtraType != nil && *b.ExtraType == "wide" {
-				outcome = fmt.Sprintf("%dwd", b.Extras)
-			} else if b.ExtraType != nil && *b.ExtraType == "no_ball" {
-				outcome = fmt.Sprintf("%dnb", b.RunsFromBat+b.Extras)
-			} else if b.ExtraType != nil && *b.ExtraType == "bye" {
-				outcome = fmt.Sprintf("%db", b.RunsFromBat+b.Extras)
-			} else if b.ExtraType != nil && *b.ExtraType == "leg_bye" {
-				outcome = fmt.Sprintf("%dlb", b.RunsFromBat+b.Extras)
+
+			// Helper to calculate total No Ball runs
+			totalNB := b.RunsFromBat + b.Extras
+
+			// handles wicket with run and extras with run
+			if b.IsWicket {
+				if b.ExtraType != nil && *b.ExtraType == "no_ball" {
+					if totalNB == 1 {
+						outcome = "NB W"
+					} else {
+						outcome = fmt.Sprintf("%dNB W", totalNB)
+					}
+				} else if b.ExtraType != nil && *b.ExtraType == "wide" {
+					if b.Extras == 1 {
+						outcome = "WD W"
+					} else {
+						outcome = fmt.Sprintf("%dWD W", b.Extras)
+					}
+				} else if b.ExtraType != nil && *b.ExtraType == "bye" {
+					outcome = fmt.Sprintf("%dB W", b.Extras)
+				} else if b.ExtraType != nil && *b.ExtraType == "leg_bye" {
+					outcome = fmt.Sprintf("%dLB W", b.Extras)
+				} else {
+					// Handles Runouts with physical runs (Outputs 1W, 2W, 3W)
+					if b.RunsFromBat > 0 {
+						outcome = fmt.Sprintf("%dW", b.RunsFromBat)
+					} else {
+						outcome = "W"
+					}
+				}
 			} else {
-				outcome = fmt.Sprintf("%d", b.RunsFromBat)
+				// Normal deliveries (No Wicket)
+				if b.ExtraType != nil && *b.ExtraType == "wide" {
+					if b.Extras == 1 {
+						outcome = "WD"
+					} else {
+						outcome = fmt.Sprintf("%dWD", b.Extras)
+					}
+				} else if b.ExtraType != nil && *b.ExtraType == "no_ball" {
+					if totalNB == 1 {
+						outcome = "NB"
+					} else {
+						outcome = fmt.Sprintf("%dNB", totalNB)
+					}
+				} else if b.ExtraType != nil && *b.ExtraType == "bye" {
+					outcome = fmt.Sprintf("%dB", b.Extras)
+				} else if b.ExtraType != nil && *b.ExtraType == "leg_bye" {
+					outcome = fmt.Sprintf("%dLB", b.Extras)
+				} else {
+					outcome = fmt.Sprintf("%d", b.RunsFromBat)
+				}
 			}
 
 			board.RecentBalls = append(board.RecentBalls, outcome)
@@ -728,10 +763,10 @@ func UndoLastBall(c context.Context, matchID string) error {
 		wides, noBalls := 0, 0
 		if lastBall.ExtraType.Valid {
 			if lastBall.ExtraType.String == "wide" {
-				wides = ext
+				wides = 1
 			}
 			if lastBall.ExtraType.String == "no_ball" {
-				noBalls = ext
+				noBalls = 1
 			}
 		}
 
