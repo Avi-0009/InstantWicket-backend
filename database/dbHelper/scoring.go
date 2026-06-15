@@ -355,7 +355,10 @@ func GetLiveScoreboard(matchID string) (*models.LiveScoreboardResponse, error) {
 			ORDER BY created_at DESC
 			LIMIT 15
 		`
-		database.DB.Select(&rawBalls, ballQuery, board.InningsID)
+		err := database.DB.Select(&rawBalls, ballQuery, board.InningsID)
+		if err != nil {
+			return nil, err
+		}
 
 		// Reverse the loop so the oldest ball is on the left and newest is on the right
 		board.RecentBalls = make([]string, 0, len(rawBalls))
