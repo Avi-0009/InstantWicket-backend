@@ -405,7 +405,7 @@ CREATE TABLE player_match_stats (
 
                                     is_golden_duck BOOLEAN DEFAULT FALSE,
 
-                                    is_not_out BOOLEAN DEFAULT FALSE,
+                                    is_out BOOLEAN DEFAULT FALSE,
 
                                     batting_position INTEGER,
 

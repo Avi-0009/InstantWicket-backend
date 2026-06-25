@@ -21,7 +21,7 @@ func NewServer() *gin.Engine {
 
 			config.GetEnv(
 				"FRONTEND_URL",
-				"http://192.168.29.139:5173",
+				"http://192.168.29.220:5173",
 			),
 		},
 		AllowMethods:  []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
