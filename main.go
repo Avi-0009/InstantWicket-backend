@@ -17,7 +17,7 @@ func main() {
 		config.GetEnv("DB_NAME", "-"),
 		config.GetEnv("DB_USER", "-"),
 		config.GetEnv("DB_PASSWORD", "password"),
-		database.SSLMode(config.GetEnv("DB_SSLMode", "disable")),
+		database.SSLMode(config.GetEnv("DB_SSLMODE", "disable")),
 	)
 	if err != nil {
 		log.Fatal(err)
