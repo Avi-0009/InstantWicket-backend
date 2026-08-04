@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Avi-0009/InstantWicket-backend/config"
+	"github.com/Avi-0009/InstantWicket-backend/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -11,7 +12,7 @@ import (
 func NewServer() *gin.Engine {
 	r := gin.Default()
 
-	// 1. Add CORS Middleware right here
+	// Add CORS Middleware right here
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			config.GetEnv(
@@ -35,7 +36,9 @@ func NewServer() *gin.Engine {
 
 	r.Use(gin.Recovery())
 
-	// 2. Load your routes AFTER the middleware
+	r.GET("/api/ping", handler.PingHandler)
+
+	// Load your routes AFTER the middleware
 	UserRoutes(r)
 	PlayerStatsRoutes(r)
 	MatchRoutes(r)

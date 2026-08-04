@@ -1,17 +1,14 @@
-# version: "3.3"
-
-#services describe the containers that will start
 services:
   db:
     container_name: postgres
-    image: "postgres:16"
+    image: "postgres:18"
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql
     environment:
-      - POSTGRES_USER=local
-      - POSTGRES_PASSWORD=local
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
       - POSTGRES_DB=InstantWicket
 networks:
   api.network:
